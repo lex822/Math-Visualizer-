@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mathematical Atlas - Ultimate Edition</title>
 
-  <!-- Three.js CDN -->
+  <!-- Three.js & KaTeX CDNs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 
   <style>
     :root {
@@ -46,7 +48,129 @@
       z-index: 1;
     }
 
-    /* Glassmorphism Panel Base */
+    /* Minimalist Starting Screen */
+    #start-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 6, 10, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+      padding: 20px;
+    }
+
+    #start-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .start-container {
+      max-width: 640px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      text-align: center;
+    }
+
+    .start-title {
+      font-size: 2.2rem;
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+    }
+
+    .start-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-top: -16px;
+      font-weight: 400;
+    }
+
+    .start-search-box {
+      width: 100%;
+      position: relative;
+    }
+
+    .start-input {
+      width: 100%;
+      background: var(--bg-panel);
+      border: 1px solid var(--bg-panel-border);
+      color: var(--text-main);
+      padding: 16px 20px;
+      border-radius: 16px;
+      font-family: monospace;
+      font-size: 1.1rem;
+      outline: none;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .start-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      width: 100%;
+    }
+
+    .preset-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--bg-panel-border);
+      padding: 16px;
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.25s ease;
+    }
+
+    .preset-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .preset-card-title {
+      font-size: 0.9rem;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .preset-card-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .launch-btn {
+      background: var(--accent);
+      color: #040812;
+      border: none;
+      padding: 14px 36px;
+      border-radius: 999px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .launch-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    /* UI HUD Panels */
     .glass-panel {
       background: var(--bg-panel);
       border: 1px solid var(--bg-panel-border);
@@ -56,24 +180,27 @@
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
 
-    /* HUD Layout Overlay */
     #hud-overlay {
       position: fixed;
       inset: 0;
       z-index: 10;
       pointer-events: none;
       display: grid;
-      grid-template-columns: 350px 1fr 300px;
+      grid-template-columns: 340px 1fr 280px;
       grid-template-rows: auto 1fr;
       gap: 16px;
       padding: 20px;
+      transition: opacity 0.3s ease;
+    }
+
+    #hud-overlay.autohide {
+      opacity: 0.15;
     }
 
     .hud-interactive {
       pointer-events: auto;
     }
 
-    /* Top Bar */
     #top-bar {
       grid-column: 1 / -1;
       display: flex;
@@ -86,8 +213,8 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
+      font-weight: 500;
+      cursor: pointer;
     }
 
     .brand-dot {
@@ -114,23 +241,16 @@
       padding: 8px 16px;
       border-radius: 999px;
       font-size: 0.85rem;
-      font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
-    }
-
-    .mode-btn:hover {
-      color: var(--text-main);
     }
 
     .mode-btn.active {
       background: var(--accent);
       color: #040812;
-      font-weight: 600;
       box-shadow: 0 0 12px var(--accent-glow);
     }
 
-    /* Left Controls Panel */
     #control-panel {
       grid-column: 1;
       grid-row: 2;
@@ -178,32 +298,22 @@
       font-family: monospace;
       font-size: 0.95rem;
       outline: none;
-      transition: border-color 0.2s;
     }
 
-    .expression-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 12px var(--accent-glow);
+    select, input[type='range'] {
+      width: 100%;
+      accent-color: var(--accent);
     }
 
     select {
-      width: 100%;
       background: var(--bg-input);
       border: 1px solid var(--bg-panel-border);
       color: var(--text-main);
       padding: 10px 14px;
       border-radius: 10px;
       outline: none;
-      cursor: pointer;
     }
 
-    input[type='range'] {
-      width: 100%;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-
-    /* Toggle Switches */
     .toggle-row {
       display: flex;
       justify-content: space-between;
@@ -212,14 +322,6 @@
       color: var(--text-muted);
     }
 
-    .toggle-checkbox {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-
-    /* Action Buttons */
     .btn-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -233,7 +335,6 @@
       padding: 10px;
       border-radius: 10px;
       font-size: 0.82rem;
-      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -245,10 +346,8 @@
     .action-btn:hover {
       background: var(--accent);
       color: #040812;
-      box-shadow: 0 0 12px var(--accent-glow);
     }
 
-    /* Right Inspector Panel */
     #inspector-panel {
       grid-column: 3;
       grid-row: 2;
@@ -276,13 +375,14 @@
     .readout-value {
       font-family: monospace;
       font-size: 0.9rem;
-      color: var(--text-main);
     }
 
-    .hint-text {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      line-height: 1.4;
+    #latex-render-box {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
     }
 
     .legend-box {
@@ -306,39 +406,60 @@
   <!-- WebGL Canvas Anchor -->
   <canvas id="viz-canvas"></canvas>
 
-  <!-- UI HUD Overlay -->
+  <!-- Minimalist Starting Screen -->
+  <div id="start-screen">
+    <div class="start-container">
+      <h1 class="start-title">Mathematical Atlas</h1>
+      <p class="start-subtitle">Explore complex functions, dynamic flows, and fractals</p>
+
+      <div class="start-search-box">
+        <input type="text" id="start-input" class="start-input" value="z^3 - 1" placeholder="Enter complex formula f(z)..." spellcheck="false" />
+      </div>
+
+      <div class="preset-grid">
+        <div class="preset-card" data-mode="0" data-formula="z^3 - 1">
+          <div class="preset-card-title">Domain Coloring</div>
+          <div class="preset-card-desc">Phase portraits & conformal grid lines</div>
+        </div>
+        <div class="preset-card" data-mode="1" data-formula="rational">
+          <div class="preset-card-title">Roots & Poles</div>
+          <div class="preset-card-desc">Interactive draggable zeros and poles</div>
+        </div>
+        <div class="preset-card" data-mode="2" data-formula="julia">
+          <div class="preset-card-title">Julia Set</div>
+          <div class="preset-card-desc">Dynamic parameter cursor tracking</div>
+        </div>
+        <div class="preset-card" data-mode="4" data-formula="z + 1/z">
+          <div class="preset-card-title">Flow Fields</div>
+          <div class="preset-card-desc">Conformal mapping & vector flow</div>
+        </div>
+      </div>
+
+      <button id="launch-btn" class="launch-btn">Launch Visualizer</button>
+    </div>
+  </div>
+
+  <!-- HUD Overlay -->
   <div id="hud-overlay">
     <header id="top-bar" class="glass-panel hud-interactive">
-      <div class="brand">
+      <div class="brand" id="open-menu-btn">
         <div class="brand-dot"></div>
-        <span>Math Visualizer Ultimate</span>
+        <span>Mathematical Atlas</span>
       </div>
       <nav class="mode-selector">
         <button class="mode-btn active" data-mode="0">2D Domain</button>
         <button class="mode-btn" data-mode="1">Roots & Poles</button>
-        <button class="mode-btn" data-mode="2">Julia Explorer</button>
-        <button class="mode-btn" data-mode="3">3D Raymarching</button>
-        <button class="mode-btn" data-mode="4">Flow Fields</button>
+        <button class="mode-btn" data-mode="2">Julia Set</button>
+        <button class="mode-btn" data-mode="3">3D Raymarch</button>
+        <button class="mode-btn" data-mode="4">Flow Field</button>
       </nav>
     </header>
 
     <aside id="control-panel" class="glass-panel hud-interactive">
-      <span class="panel-title">Presets & Formula</span>
-      <div class="field-group">
-        <div class="field-label"><span>Preset Gallery</span></div>
-        <select id="preset-select">
-          <option value="custom">Custom Formula</option>
-          <option value="zeta">Riemann Zeta Approx</option>
-          <option value="newton">Newton-Raphson Basin (z^3-1)</option>
-          <option value="joukowsky">Joukowsky Airfoil (z + 1/z)</option>
-          <option value="rational">Rational Function (Roots/Poles)</option>
-        </select>
-      </div>
-
+      <span class="panel-title">Formula Entry</span>
       <div class="field-group" id="formula-group">
         <div class="field-label"><span>Formula f(z)</span></div>
         <input type="text" id="expr-input" class="expression-input" value="z^3 - 1" spellcheck="false" />
-        <span class="hint-text">Press Enter to compile. Supports +, -, *, /, ^, sin, cos, exp.</span>
       </div>
 
       <span class="panel-title">Aesthetics & Grids</span>
@@ -363,15 +484,19 @@
         <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1.0" />
       </div>
 
-      <span class="panel-title">Tools</span>
+      <span class="panel-title">Tools & Recording</span>
       <div class="btn-grid">
         <button id="share-btn" class="action-btn">🔗 Copy URL</button>
         <button id="export-btn" class="action-btn">📷 Save PNG</button>
+        <button id="record-btn" class="action-btn" style="grid-column: 1 / -1;">🎥 Record MP4/WebM</button>
       </div>
     </aside>
 
     <aside id="inspector-panel" class="glass-panel hud-interactive">
-      <span class="panel-title">Realtime Inspector</span>
+      <span class="panel-title">Formatted Equation</span>
+      <div class="readout-card" id="latex-render-box"></div>
+
+      <span class="panel-title">Realtime Readouts</span>
       <div class="readout-card">
         <div class="readout-label">Cursor Location (z)</div>
         <div id="readout-z" class="readout-value">0.00 + 0.00i</div>
@@ -381,7 +506,7 @@
         <div id="readout-c" class="readout-value">-0.70 + 0.27i</div>
       </div>
       <div class="readout-card">
-        <div class="readout-label">Performance</div>
+        <div class="readout-label">Engine Performance</div>
         <div id="readout-fps" class="readout-value">60 FPS</div>
       </div>
 
@@ -389,13 +514,11 @@
         <div class="legend-item"><div class="dot-root"></div><span>Roots (Zeros)</span></div>
         <div class="legend-item"><div class="dot-pole"></div><span>Poles</span></div>
       </div>
-
-      <span class="hint-text" id="mode-hint">Drag anywhere to pan. Scroll to zoom.</span>
     </aside>
   </div>
 
   <script>
-    // --- Complex Math GLSL Header ---
+    // --- GLSL Engine Core Header ---
     const glslHeader = /* glsl */ `
       precision highp float;
 
@@ -413,7 +536,6 @@
 
       #define PI 3.14159265359
 
-      // Complex Operations
       vec2 c_add(vec2 a, vec2 b) { return a + b; }
       vec2 c_sub(vec2 a, vec2 b) { return a - b; }
       vec2 c_mul(vec2 a, vec2 b) { return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
@@ -429,25 +551,23 @@
       vec2 c_cos(vec2 z) { return vec2(cos(z.x)*cosh(z.y), -sin(z.x)*sinh(z.y)); }
       vec2 c_exp(vec2 z) { return exp(z.x) * vec2(cos(z.y), sin(z.y)); }
 
-      // Palette Engine
       vec3 hsl2rgb(vec3 c) {
         vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
         return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
       }
 
       vec3 applyPalette(float val, float angle) {
-        if (u_palette == 1) { // Thermal
+        if (u_palette == 1) {
           return 0.5 + 0.5 * cos(vec3(0.0, 0.33, 0.67) * 6.28318 + val * 3.0);
-        } else if (u_palette == 2) { // Electric Cyan
+        } else if (u_palette == 2) {
           return mix(vec3(0.02, 0.05, 0.2), vec3(0.3, 0.9, 1.0), sin(val * 6.28) * 0.5 + 0.5);
-        } else if (u_palette == 3) { // Monochrome Contour
+        } else if (u_palette == 3) {
           float c = step(0.5, fract(val * 4.0));
           return vec3(c * 0.85 + 0.1);
         }
         return hsl2rgb(vec3(angle / (2.0 * PI), 0.85, clamp(val * 0.6, 0.15, 0.85)));
       }
 
-      // Conformal Grid Overlay
       vec3 applyConformalGrid(vec3 col, vec2 fz) {
         if (!u_showGrid) return col;
         vec2 grid = abs(fract(fz - 0.5) - 0.5) / max(fwidth(fz), 0.001);
@@ -473,49 +593,41 @@
           return ${parsedFormulaGLSL};
         }
 
-        // Rational Function from Interactive Handles
         vec2 evalRational(vec2 z) {
           vec2 num = c_mul(c_sub(z, u_roots[0]), c_mul(c_sub(z, u_roots[1]), c_sub(z, u_roots[2])));
           vec2 den = c_mul(c_sub(z, u_poles[0]), c_sub(z, u_poles[1]));
           return c_div(num, den);
         }
 
-        // 2D Domain Coloring
         vec3 renderComplexDomain(vec2 z) {
           vec2 fz = evalUserFormula(z);
           float r = length(fz);
           float theta = atan(fz.y, fz.x);
           if (theta < 0.0) theta += 2.0 * PI;
-
           float logR = log(r + 1.0);
           float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
           vec3 col = applyPalette(val, theta);
           return applyConformalGrid(col, fz);
         }
 
-        // Roots & Poles Domain Coloring
         vec3 renderRootsAndPoles(vec2 z) {
           vec2 fz = evalRational(z);
           float r = length(fz);
           float theta = atan(fz.y, fz.x);
           if (theta < 0.0) theta += 2.0 * PI;
-
           float logR = log(r + 1.0);
           float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
           vec3 col = applyPalette(val, theta);
 
-          // Draw Roots (Green) & Poles (Red) handles directly in shader
           for (int i = 0; i < 3; i++) {
             if (length(z - u_roots[i]) < 0.08 * u_zoom) col = vec3(0.0, 1.0, 0.6);
           }
           for (int i = 0; i < 2; i++) {
             if (length(z - u_poles[i]) < 0.08 * u_zoom) col = vec3(1.0, 0.25, 0.4);
           }
-
           return applyConformalGrid(col, fz);
         }
 
-        // Julia Set Explorer
         vec3 renderJulia(vec2 pos) {
           vec2 z = pos;
           float n = 0.0;
@@ -529,7 +641,6 @@
           return applyPalette((n + 1.0 - nu) * 0.05 + u_time * 0.05, (n + 1.0 - nu) * 0.1);
         }
 
-        // 3D GPU Raymarching
         float mapHeight(vec2 p) {
           vec2 fz = evalUserFormula(p);
           return clamp(log(length(fz) + 1.0), 0.0, 3.0);
@@ -571,7 +682,6 @@
           return vec3(0.02, 0.04, 0.08);
         }
 
-        // Flow Field Mode
         vec3 renderFlowField(vec2 p) {
           vec2 v = evalUserFormula(p);
           float speed = length(v);
@@ -597,18 +707,10 @@
       `;
     }
 
-    // --- Formula String Parser ---
+    // --- Parser Engine ---
     function parseFormulaToGLSL(inputStr) {
       try {
         let str = inputStr.trim().toLowerCase().replace(/\s+/g, '');
-
-        if (str.includes('zeta')) {
-          return 'c_add(c_exp(-z), c_pow(z, -2.0))';
-        }
-        if (str.includes('newton')) {
-          return 'c_div(c_sub(c_cube(z), vec2(1.0, 0.0)), c_mul(vec2(3.0, 0.0), c_sqr(z)))';
-        }
-
         str = str.replace(/z\^2/g, 'c_sqr(z)');
         str = str.replace(/z\^3/g, 'c_cube(z)');
         str = str.replace(/z\^([0-9\.]+)/g, 'c_pow(z, $1)');
@@ -616,12 +718,19 @@
         str = str.replace(/cos\(z\)/g, 'c_cos(z)');
         str = str.replace(/exp\(z\)/g, 'c_exp(z)');
         str = str.replace(/(\d+)(?![.\d])/g, '$1.0');
-
         if (str === 'z') return 'z';
         return str;
       } catch (e) {
         return 'c_sub(c_cube(z), vec2(1.0, 0.0))';
       }
+    }
+
+    function renderKaTeX(formulaStr) {
+      const box = document.querySelector('#latex-render-box');
+      try {
+        let latex = formulaStr.replace(/z\^3/g, 'z^3').replace(/z\^2/g, 'z^2');
+        katex.render(`f(z) = ${latex}`, box, { displayMode: true, throwOnError: false });
+      } catch(e) {}
     }
 
     // --- State Management ---
@@ -636,18 +745,6 @@
       roots: [new THREE.Vector2(-1, 0), new THREE.Vector2(1, 0), new THREE.Vector2(0, 1)],
       poles: [new THREE.Vector2(0, -1), new THREE.Vector2(0.5, 0.5)]
     };
-
-    // Load Hash State on Startup
-    function loadUrlHashState() {
-      if (!window.location.hash) return;
-      try {
-        const params = new URLSearchParams(window.location.hash.substring(1));
-        if (params.has('mode')) state.mode = parseInt(params.get('mode'), 10);
-        if (params.has('zoom')) state.zoom = parseFloat(params.get('zoom'));
-        if (params.has('formula')) document.querySelector('#expr-input').value = params.get('formula');
-      } catch(e) {}
-    }
-    loadUrlHashState();
 
     const canvas = document.querySelector('#viz-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -687,9 +784,40 @@
         fragmentShader: buildFragmentShader(glslExpr),
         uniforms
       });
+      renderKaTeX(formulaText);
     }
 
-    // --- UI Event Handlers ---
+    // --- UI Controls & Start Screen Logic ---
+    const startScreen = document.querySelector('#start-screen');
+    const startInput = document.querySelector('#start-input');
+    const exprInput = document.querySelector('#expr-input');
+
+    function launchVisualizer(mode, formula) {
+      if (mode !== undefined) state.mode = mode;
+      if (formula && formula !== 'rational' && formula !== 'julia') {
+        exprInput.value = formula;
+        updateShaderFormula(formula);
+      }
+      syncModeUI();
+      startScreen.classList.add('hidden');
+    }
+
+    document.querySelector('#launch-btn').addEventListener('click', () => {
+      launchVisualizer(0, startInput.value);
+    });
+
+    document.querySelectorAll('.preset-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const mode = parseInt(card.dataset.mode, 10);
+        const formula = card.dataset.formula;
+        launchVisualizer(mode, formula);
+      });
+    });
+
+    document.querySelector('#open-menu-btn').addEventListener('click', () => {
+      startScreen.classList.remove('hidden');
+    });
+
     const modeBtns = document.querySelectorAll('.mode-btn');
     const rootsLegend = document.querySelector('#roots-legend');
     const juliaCard = document.querySelector('#julia-param-card');
@@ -704,31 +832,15 @@
       juliaCard.style.display = state.mode === 2 ? 'block' : 'none';
       formulaGroup.style.display = (state.mode === 1 || state.mode === 2) ? 'none' : 'flex';
     }
-    syncModeUI();
 
-    modeBtns.forEach((btn, idx) => {
+    modeBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         state.mode = parseInt(btn.dataset.mode, 10);
         syncModeUI();
       });
     });
 
-    const presetSelect = document.querySelector('#preset-select');
-    presetSelect.addEventListener('change', (e) => {
-      const val = e.target.value;
-      const input = document.querySelector('#expr-input');
-      if (val === 'zeta') input.value = 'zeta';
-      else if (val === 'newton') input.value = 'newton';
-      else if (val === 'joukowsky') input.value = 'z + 1/z';
-      else if (val === 'rational') {
-        state.mode = 1;
-        syncModeUI();
-        return;
-      }
-      updateShaderFormula(input.value);
-    });
-
-    document.querySelector('#expr-input').addEventListener('keydown', (e) => {
+    exprInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') updateShaderFormula(e.target.value);
     });
 
@@ -747,31 +859,45 @@
       document.querySelector('#speed-val').textContent = state.speed.toFixed(1);
     });
 
-    // Share URL State
-    document.querySelector('#share-btn').addEventListener('click', () => {
-      const hash = `#mode=${state.mode}&zoom=${state.zoom.toFixed(2)}&formula=${encodeURIComponent(document.querySelector('#expr-input').value)}`;
-      window.location.hash = hash;
-      navigator.clipboard.writeText(window.location.href);
-      alert('URL with current state copied to clipboard!');
+    // --- Recording Engine ---
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    const recordBtn = document.querySelector('#record-btn');
+
+    recordBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        recordBtn.textContent = '🎥 Record MP4/WebM';
+      } else {
+        const stream = canvas.captureStream(60);
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        recordedChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `math-loop-${Date.now()}.webm`;
+          a.click();
+        };
+
+        mediaRecorder.start();
+        recordBtn.textContent = '⏹️ Stop Recording';
+      }
     });
 
-    // Export High-Res Image
-    document.querySelector('#export-btn').addEventListener('click', () => {
-      renderer.render(scene, camera);
-      const link = document.createElement('a');
-      link.download = `math-atlas-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-
-    // --- Drag & Drop Handles + Pan & Zoom ---
+    // --- Interaction Engine & Auto-Hiding HUD ---
     let isDragging = false;
     let draggedHandle = null;
     let prevMouse = { x: 0, y: 0 };
+    const hudOverlay = document.querySelector('#hud-overlay');
 
     window.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.hud-interactive')) return;
+      if (e.target.closest('.hud-interactive') || e.target.closest('#start-screen')) return;
       isDragging = true;
+      hudOverlay.classList.add('autohide');
       prevMouse = { x: e.clientX, y: e.clientY };
 
       const aspect = window.innerWidth / window.innerHeight;
@@ -779,21 +905,14 @@
       const zImag = -((e.clientY / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
       const clickPos = new THREE.Vector2(zReal, zImag);
 
-      // Mode 1: Check handle clicks
       if (state.mode === 1) {
-        for (let r of state.roots) {
-          if (r.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = r; return; }
-        }
-        for (let p of state.poles) {
-          if (p.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = p; return; }
-        }
+        for (let r of state.roots) { if (r.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = r; return; } }
+        for (let p of state.poles) { if (p.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = p; return; } }
       }
 
-      // Mode 2: Julia Set Parameter Picking
       if (state.mode === 2) {
         state.juliaC.copy(clickPos);
-        document.querySelector('#readout-c').textContent = 
-          `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
+        document.querySelector('#readout-c').textContent = `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
       }
     });
 
@@ -802,19 +921,13 @@
       const zReal = ((e.clientX / window.innerWidth) * 2 - 1) * state.zoom * aspect + state.offset.x;
       const zImag = -((e.clientY / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
 
-      document.querySelector('#readout-z').textContent = 
-        `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
+      document.querySelector('#readout-z').textContent = `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
 
       if (isDragging) {
-        if (draggedHandle) {
-          draggedHandle.set(zReal, zImag);
-          return;
-        }
-
+        if (draggedHandle) { draggedHandle.set(zReal, zImag); return; }
         if (state.mode === 2) {
           state.juliaC.set(zReal, zImag);
-          document.querySelector('#readout-c').textContent = 
-            `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
+          document.querySelector('#readout-c').textContent = `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
           return;
         }
 
@@ -829,6 +942,7 @@
     window.addEventListener('pointerup', () => {
       isDragging = false;
       draggedHandle = null;
+      hudOverlay.classList.remove('autohide');
     });
 
     window.addEventListener('wheel', (e) => {
@@ -847,6 +961,8 @@
     let elapsedTime = 0;
     let frameCount = 0;
     let lastFpsCheck = performance.now();
+
+    renderKaTeX(exprInput.value);
 
     function animate() {
       requestAnimationFrame(animate);
