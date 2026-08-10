@@ -1,30 +1,29 @@
-import './style.css';
-import { HUD } from './ui/HUD.js';
+import * as THREE from 'three';
 
-// Initialize Canvas Container
-const appContainer = document.querySelector('#app') || document.body;
+// Create Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-// Instantiate Glassmorphism HUD Overlay
-const hud = new HUD(appContainer, {
-  onModeChange: (modeIndex) => {
-    window.setModuleMode?.(modeIndex);
-  },
-  onExpressionChange: (expressionStr) => {
-    console.log('Evaluating custom formula:', expressionStr);
-    // AST Parser hook goes here
-  },
-  onParamChange: (paramKey, value) => {
-    if (paramKey === 'speed') uniforms.u_timeSpeed.value = value;
-    if (paramKey === 'detail') uniforms.u_iterations.value = value;
-  }
-});
+// Mount Canvas to Page
+const container = document.getElementById('app') || document.body;
+container.appendChild(renderer.domElement);
 
-// Update cursor readouts inside your animation loop or pointermove event
-window.addEventListener('pointermove', (e) => {
-  const aspect = window.innerWidth / window.innerHeight;
-  const zReal = ((e.clientX / window.innerWidth) * 2 - 1) * state.zoom * aspect + state.offset.x;
-  const zImag = -((e.clientY / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
+// Basic Scene Setup
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-  // Example placeholder update
-  hud.updateReadouts(zReal, zImag, Math.pow(zReal, 2) - Math.pow(zImag, 2), 2 * zReal * zImag);
+// Test Quad to confirm WebGL is rendering
+const geometry = new THREE.PlaneGeometry(2, 2);
+const material = new THREE.MeshBasicMaterial({ color: 0x0077ff });
+scene.add(new THREE.Mesh(geometry, material));
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
