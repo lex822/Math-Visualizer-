@@ -2,1190 +2,852 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Mathematical Atlas - Ultra Edition</title>
-
-  <!-- Three.js & KaTeX CDNs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complex Analysis & Topology Workbench</title>
   <style>
     :root {
-      color-scheme: dark;
-      --bg-panel: rgba(12, 16, 26, 0.82);
-      --bg-panel-border: rgba(255, 255, 255, 0.14);
-      --bg-input: rgba(4, 8, 18, 0.7);
-      --accent: #8ee3ff;
-      --accent-glow: rgba(142, 227, 255, 0.3);
-      --text-main: #f0f4fc;
-      --text-muted: rgba(240, 244, 252, 0.65);
-      --root-color: #00ffaa;
-      --pole-color: #ff4466;
+      --bg-dark: #0a0b10;
+      --panel-bg: rgba(18, 20, 29, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-purple: #7f00ff;
+      --text-main: #f0f4f8;
+      --text-dim: #94a3b8;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       user-select: none;
-      touch-action: none;
     }
 
-    html, body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: #04060a;
-      color: var(--text-main);
-    }
-
-    #viz-canvas {
-      position: fixed;
-      inset: 0;
+    body, html {
       width: 100%;
       height: 100%;
-      z-index: 1;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-main);
     }
 
-    /* Minimalist Starting Screen */
-    #start-screen {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
+    #viewport-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: rgba(4, 6, 10, 0.88);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      transition: opacity 0.5s ease, visibility 0.5s ease;
-      padding: 20px;
     }
 
-    #start-screen.hidden {
-      opacity: 0;
-      visibility: hidden;
+    .canvas-pane {
+      position: relative;
+      height: 100%;
+      flex: 1;
+      background: #000;
+    }
+
+    .canvas-pane.hidden {
+      display: none;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .pane-label {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
       pointer-events: none;
     }
 
-    .start-container {
-      max-width: 640px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 24px;
-      text-align: center;
-    }
-
-    .start-title {
-      font-size: 2.2rem;
-      font-weight: 300;
-      letter-spacing: -0.03em;
-      color: var(--text-main);
-    }
-
-    .start-subtitle {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      margin-top: -14px;
-      font-weight: 400;
-    }
-
-    .start-search-box {
-      width: 100%;
-    }
-
-    .start-input {
-      width: 100%;
-      background: var(--bg-panel);
-      border: 1px solid var(--bg-panel-border);
-      color: var(--text-main);
-      padding: 16px 20px;
-      border-radius: 16px;
-      font-family: monospace;
-      font-size: 1.1rem;
-      outline: none;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-      transition: all 0.3s ease;
-    }
-
-    .start-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 20px var(--accent-glow);
-    }
-
-    .preset-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      width: 100%;
-    }
-
-    .preset-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--bg-panel-border);
-      padding: 16px;
-      border-radius: 14px;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.25s ease;
-    }
-
-    .preset-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-
-    .preset-card-title {
-      font-size: 0.9rem;
-      color: var(--text-main);
-      margin-bottom: 4px;
-    }
-
-    .preset-card-desc {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .launch-btn {
-      background: var(--accent);
-      color: #040812;
-      border: none;
-      padding: 14px 36px;
-      border-radius: 999px;
-      font-weight: 500;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      box-shadow: 0 0 16px var(--accent-glow);
-    }
-
-    .launch-btn:hover {
-      transform: scale(1.03);
-      box-shadow: 0 0 24px var(--accent-glow);
-    }
-
-    /* UI HUD Panels */
-    .glass-panel {
-      background: var(--bg-panel);
-      border: 1px solid var(--bg-panel-border);
+    /* HUD Controls Panel */
+    #hud {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 360px;
+      max-height: calc(100vh - 32px);
+      background: var(--panel-bg);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border-radius: 16px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-    }
-
-    #hud-overlay {
-      position: fixed;
-      inset: 0;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
       z-index: 10;
-      pointer-events: none;
-      display: grid;
-      grid-template-columns: 340px 1fr 280px;
-      grid-template-rows: auto 1fr;
-      gap: 16px;
-      padding: 20px;
-      transition: opacity 0.3s ease;
+      overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    #hud-overlay.autohide {
-      opacity: 0.12;
+    #hud.collapsed {
+      transform: translateX(calc(100% + 20px));
     }
 
-    .hud-interactive {
-      pointer-events: auto;
+    #hud-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 11;
+      backdrop-filter: blur(8px);
     }
 
-    #top-bar {
-      grid-column: 1 / -1;
+    .hud-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--panel-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 20px;
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 500;
-      cursor: pointer;
+    .hud-header h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    .brand-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
+    .badge {
+      font-size: 0.65rem;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(0, 242, 254, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      font-weight: 600;
     }
 
-    .mode-selector {
-      display: flex;
-      background: rgba(0, 0, 0, 0.35);
-      padding: 4px;
-      border-radius: 999px;
-      border: 1px solid var(--bg-panel-border);
-      gap: 4px;
-      overflow-x: auto;
-    }
-
-    .mode-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 8px 16px;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s ease;
-    }
-
-    .mode-btn.active {
-      background: var(--accent);
-      color: #040812;
-      box-shadow: 0 0 12px var(--accent-glow);
-    }
-
-    #control-panel {
-      grid-column: 1;
-      grid-row: 2;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 20px;
-      align-self: start;
-      max-height: calc(100vh - 120px);
+    .hud-body {
+      padding: 16px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .panel-title {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-    }
-
-    .field-group {
+    .hud-group {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .field-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: var(--text-muted);
+    .hud-group label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .field-value {
-      color: var(--accent);
-      font-family: monospace;
-    }
-
-    .expression-input {
+    input[type="text"], select, textarea {
       width: 100%;
-      background: var(--bg-input);
-      border: 1px solid var(--bg-panel-border);
-      color: var(--text-main);
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-family: monospace;
-      font-size: 0.95rem;
-      outline: none;
-    }
-
-    select, input[type='range'] {
-      width: 100%;
-      accent-color: var(--accent);
-    }
-
-    select {
-      background: var(--bg-input);
-      border: 1px solid var(--bg-panel-border);
-      color: var(--text-main);
-      padding: 10px 14px;
-      border-radius: 10px;
-      outline: none;
-    }
-
-    .toggle-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    .color-picker-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-    }
-
-    .color-picker-grid input[type="color"] {
-      width: 100%;
-      height: 36px;
-      border: 1px solid var(--bg-panel-border);
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--panel-border);
       border-radius: 8px;
-      background: transparent;
-      cursor: pointer;
+      color: var(--text-main);
+      font-family: monospace;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input[type="text"]:focus, select:focus, textarea:focus {
+      border-color: var(--accent-cyan);
     }
 
     .btn-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
     }
 
-    .action-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--bg-panel-border);
-      color: var(--text-main);
+    button {
       padding: 10px;
-      border-radius: 10px;
-      font-size: 0.82rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      font-weight: 600;
       cursor: pointer;
+      transition: all 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: all 0.2s ease;
     }
 
-    .action-btn:hover {
-      background: var(--accent);
-      color: #040812;
+    button:hover {
+      background: rgba(0, 242, 254, 0.15);
+      border-color: var(--accent-cyan);
+      color: #fff;
     }
 
-    #inspector-panel {
-      grid-column: 3;
-      grid-row: 2;
-      padding: 20px;
-      align-self: start;
+    button.active {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(127, 0, 255, 0.2));
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+
+    /* Code Editor Drawer */
+    #editor-drawer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 280px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--panel-border);
+      z-index: 9;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      gap: 14px;
     }
 
-    .readout-card {
-      background: rgba(0, 0, 0, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+    #editor-drawer.open {
+      transform: translateY(0);
+    }
+
+    .drawer-header {
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    #code-editor {
+      flex: 1;
+      resize: none;
+      border: none;
+      border-radius: 0;
       padding: 12px;
-      border-radius: 10px;
+      background: rgba(5, 6, 10, 0.9);
+      color: #00ffaa;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.4;
     }
 
-    .readout-label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 4px;
+    /* Audio Canvas Overlay */
+    #audio-vis {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      width: 180px;
+      height: 60px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 5;
     }
-
-    .readout-value {
-      font-family: monospace;
-      font-size: 0.9rem;
-    }
-
-    #latex-render-box {
-      min-height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
-    }
-
-    .legend-box {
-      display: flex;
-      gap: 12px;
-      font-size: 0.75rem;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .dot-root { width: 10px; height: 10px; border-radius: 50%; background: var(--root-color); }
-    .dot-pole { width: 10px; height: 10px; border-radius: 50%; background: var(--pole-color); }
   </style>
 </head>
 <body>
 
-  <!-- WebGL Canvas Anchor -->
-  <canvas id="viz-canvas"></canvas>
-
-  <!-- Minimalist Starting Screen -->
-  <div id="start-screen">
-    <div class="start-container">
-      <h1 class="start-title">Mathematical Atlas</h1>
-      <p class="start-subtitle">Explore complex functions, dynamic flows, and fractals</p>
-
-      <div class="start-search-box">
-        <input type="text" id="start-input" class="start-input" value="ln(z) + sin(z)" placeholder="Enter complex formula f(z)..." spellcheck="false" />
-      </div>
-
-      <div class="preset-grid">
-        <div class="preset-card" data-mode="0" data-formula="ln(z)">
-          <div class="preset-card-title">Complex Logarithm</div>
-          <div class="preset-card-desc">Branch cuts and argument phase jumps</div>
-        </div>
-        <div class="preset-card" data-mode="0" data-formula="tan(z)">
-          <div class="preset-card-title">Complex Tangent</div>
-          <div class="preset-card-desc">Periodic poles along the real axis</div>
-        </div>
-        <div class="preset-card" data-mode="1" data-formula="rational">
-          <div class="preset-card-title">Roots & Poles</div>
-          <div class="preset-card-desc">Interactive draggable zeros and poles</div>
-        </div>
-        <div class="preset-card" data-mode="2" data-formula="julia">
-          <div class="preset-card-title">Julia Set</div>
-          <div class="preset-card-desc">Dynamic parameter cursor tracking</div>
-        </div>
-      </div>
-
-      <button id="launch-btn" class="launch-btn">Launch Visualizer</button>
+  <div id="viewport-container">
+    <div id="pane-primary" class="canvas-pane">
+      <span class="pane-label" id="label-primary">Primary Domain</span>
+      <canvas id="canvas-primary"></canvas>
+    </div>
+    <div id="pane-secondary" class="canvas-pane hidden">
+      <span class="pane-label" id="label-secondary">Transform (w-plane)</span>
+      <canvas id="canvas-secondary"></canvas>
     </div>
   </div>
 
-  <!-- HUD Overlay -->
-  <div id="hud-overlay">
-    <header id="top-bar" class="glass-panel hud-interactive">
-      <div class="brand" id="open-menu-btn">
-        <div class="brand-dot"></div>
-        <span>Mathematical Atlas</span>
-      </div>
-      <nav class="mode-selector">
-        <button class="mode-btn active" data-mode="0">2D Domain</button>
-        <button class="mode-btn" data-mode="1">Roots & Poles</button>
-        <button class="mode-btn" data-mode="2">Julia Set</button>
-        <button class="mode-btn" data-mode="3">3D Raymarch</button>
-        <button class="mode-btn" data-mode="4">Flow Field</button>
-      </nav>
-    </header>
+  <canvas id="audio-vis"></canvas>
 
-    <aside id="control-panel" class="glass-panel hud-interactive">
-      <span class="panel-title">Formula Entry</span>
-      <div class="field-group" id="formula-group">
-        <div class="field-label"><span>Formula f(z)</span></div>
-        <input type="text" id="expr-input" class="expression-input" value="ln(z) + sin(z)" spellcheck="false" />
+  <div id="hud-toggle">⚙️</div>
+
+  <div id="hud">
+    <div class="hud-header">
+      <h1>Math Workbench</h1>
+      <span class="badge" id="backend-badge">WebGL2</span>
+    </div>
+
+    <div class="hud-body">
+      <div class="hud-group">
+        <label for="formula-input">Complex Function $f(z)$</label>
+        <input type="text" id="formula-input" value="z^3 - 1.0" spellcheck="false" />
       </div>
 
-      <span class="panel-title">Aesthetics & Quality</span>
-      <div class="field-group">
-        <div class="field-label"><span>Color Preset</span></div>
-        <select id="palette-select">
-          <option value="0">Classic Phase Engine</option>
-          <option value="1">Thermal / Inferno</option>
-          <option value="2">Electric Cyan</option>
-          <option value="3">Monochrome Contour</option>
-          <option value="4">Custom Gradient</option>
-        </select>
-      </div>
-
-      <div id="custom-palette-box" class="field-group" style="display: none;">
-        <div class="field-label"><span>Custom Color Stops</span></div>
-        <div class="color-picker-grid">
-          <input type="color" id="c-stop-1" value="#040818">
-          <input type="color" id="c-stop-2" value="#00d2ff">
-          <input type="color" id="c-stop-3" value="#00ffaa">
-          <input type="color" id="c-stop-4" value="#ff0055">
+      <div class="hud-group">
+        <label>View & Projection</label>
+        <div class="btn-grid">
+          <button id="btn-mode-2d" class="active">2D Domain</button>
+          <button id="btn-mode-sphere">Riemann Sphere</button>
+          <button id="btn-mode-split">Dual Split View</button>
+          <button id="btn-mode-newton">Newton Fractal</button>
         </div>
       </div>
 
-      <div class="toggle-row">
-        <span>Conformal Grid Overlay</span>
-        <input type="checkbox" id="grid-toggle" checked />
+      <div class="hud-group">
+        <label>Engine Capabilities</label>
+        <div class="toggle-row">
+          <span>Audio Synthesizer</span>
+          <button id="btn-toggle-audio" style="width: auto; padding: 4px 12px;">OFF</button>
+        </div>
+        <div class="toggle-row" style="margin-top: 6px;">
+          <span>Mic Audio Reactive</span>
+          <button id="btn-toggle-mic" style="width: auto; padding: 4px 12px;">OFF</button>
+        </div>
       </div>
 
-      <div class="toggle-row">
-        <span>2x2 MSAA Antialiasing</span>
-        <input type="checkbox" id="msaa-toggle" />
+      <div class="hud-group">
+        <label>Coloring Scheme</label>
+        <select id="color-scheme">
+          <option value="0">Domain Coloring (Phase + Mag)</option>
+          <option value="1">Steepest Descent / Contour Lines</option>
+          <option value="2">Cyclic Phase Palette</option>
+          <option value="3">Normalized Iteration (Fractal Mode)</option>
+        </select>
       </div>
 
-      <span class="panel-title">Parameters</span>
-      <div class="field-group">
-        <div class="field-label"><span>Animation Speed</span><span id="speed-val" class="field-value">1.0</span></div>
-        <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1.0" />
+      <div class="hud-group">
+        <label>Tools & Export</label>
+        <div class="btn-grid">
+          <button id="btn-open-editor">💻 GLSL Drawer</button>
+          <button id="btn-export-svg">📐 Export SVG</button>
+        </div>
       </div>
+    </div>
+  </div>
 
-      <span class="panel-title">Tools & Recording</span>
-      <div class="btn-grid">
-        <button id="share-btn" class="action-btn">🔗 Copy URL</button>
-        <button id="export-btn" class="action-btn">📷 Save PNG</button>
-        <button id="record-btn" class="action-btn" style="grid-column: 1 / -1;">🎥 Record MP4/WebM</button>
-      </div>
-    </aside>
-
-    <aside id="inspector-panel" class="glass-panel hud-interactive">
-      <span class="panel-title">Formatted Equation</span>
-      <div class="readout-card" id="latex-render-box"></div>
-
-      <span class="panel-title">Realtime Readouts</span>
-      <div class="readout-card">
-        <div class="readout-label">Cursor Location (z)</div>
-        <div id="readout-z" class="readout-value">0.00 + 0.00i</div>
-      </div>
-      <div class="readout-card" id="julia-param-card">
-        <div class="readout-label">Julia Parameter (c)</div>
-        <div id="readout-c" class="readout-value">-0.70 + 0.27i</div>
-      </div>
-      <div class="readout-card">
-        <div class="readout-label">Engine Performance</div>
-        <div id="readout-fps" class="readout-value">60 FPS</div>
-      </div>
-
-      <div class="legend-box" id="roots-legend" style="display: none;">
-        <div class="legend-item"><div class="dot-root"></div><span>Roots (Zeros)</span></div>
-        <div class="legend-item"><div class="dot-pole"></div><span>Poles</span></div>
-      </div>
-    </aside>
+  <div id="editor-drawer">
+    <div class="drawer-header">
+      <span>Custom Shader Logic Engine (GLSL)</span>
+      <button id="btn-compile-glsl" style="padding: 4px 8px; font-size: 0.7rem;">Compile & Run</button>
+    </div>
+    <textarea id="code-editor" spellcheck="false">
+// Enter custom complex mapping f(z):
+// z is vec2(Re, Im)
+vec2 evaluateCustom(vec2 z) {
+    // Example: z^2 + c
+    vec2 z2 = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y);
+    return z2 + vec2(-0.4, 0.6);
+}
+    </textarea>
   </div>
 
   <script>
-    // --- GLSL Engine Core Header with Expanded Complex Math Library ---
-    const glslHeader = /* glsl */ `
-      precision highp float;
+    /**
+     * WORKBENCH CORE SYSTEM ARCHITECTURE
+     */
+    const STATE = {
+      formula: 'z^3 - 1.0',
+      mode: '2d', // '2d', 'sphere', 'split', 'newton'
+      colorScheme: 0,
+      zoom: 1.0,
+      offset: [0.0, 0.0],
+      rotation: [0.0, 0.0],
+      isDragging: false,
+      lastMouse: [0, 0],
+      audioEnabled: false,
+      micEnabled: false,
+      customGLSL: '',
+      useCustomGLSL: false,
+      backend: 'WebGL2'
+    };
 
+    // Global WebGL Context Handles
+    let gl1, gl2;
+    let program1, program2;
+    let audioCtx, oscNode, gainNode, analyserNode;
+
+    // --- GLSL SHADER SOURCES ---
+    const VERTEX_SHADER_SRC = `#version 300 es
+      in vec2 a_position;
+      out vec2 v_uv;
+      void main() {
+        v_uv = a_position * 0.5 + 0.5;
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
+
+    const FRAGMENT_SHADER_BASE = `#version 300 es
+      precision highp float;
+      
       uniform vec2 u_resolution;
       uniform vec2 u_offset;
       uniform float u_zoom;
+      uniform vec2 u_rotation;
+      uniform int u_mode; // 0: 2D, 1: Sphere, 2: Newton
+      uniform int u_colorScheme;
       uniform float u_time;
-      uniform int u_mode;
-      uniform int u_palette;
-      uniform bool u_showGrid;
-      uniform bool u_msaa;
-      uniform vec3 u_customColors[4];
+      uniform float u_audioLevel;
+      uniform bool u_useCustomGLSL;
 
-      uniform vec2 u_roots[3];
-      uniform vec2 u_poles[2];
-      uniform vec2 u_juliaC;
+      in vec2 v_uv;
+      out vec4 fragColor;
 
       #define PI 3.14159265359
 
+      // --- Complex Operations Math Library ---
       vec2 c_add(vec2 a, vec2 b) { return a + b; }
       vec2 c_sub(vec2 a, vec2 b) { return a - b; }
       vec2 c_mul(vec2 a, vec2 b) { return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
-      vec2 c_div(vec2 a, vec2 b) { float d = dot(b,b); return vec2(dot(a,b), a.y*b.x - a.x*b.y)/max(d, 0.0001); }
-      vec2 c_sqr(vec2 z) { return vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y); }
-      vec2 c_cube(vec2 z) { return c_mul(z, c_sqr(z)); }
-      vec2 c_pow(vec2 z, float p) {
-        float r = length(z);
-        float a = atan(z.y, z.x);
-        return vec2(pow(r, p) * cos(a * p), pow(r, p) * sin(a * p));
-      }
-      vec2 c_sin(vec2 z) { return vec2(sin(z.x)*cosh(z.y), cos(z.x)*sinh(z.y)); }
-      vec2 c_cos(vec2 z) { return vec2(cos(z.x)*cosh(z.y), -sin(z.x)*sinh(z.y)); }
+      vec2 c_div(vec2 a, vec2 b) { float d = dot(b,b); return vec2(dot(a,b), a.y*b.x - a.x*b.y) / d; }
       vec2 c_exp(vec2 z) { return exp(z.x) * vec2(cos(z.y), sin(z.y)); }
-      vec2 c_ln(vec2 z) { return vec2(log(max(length(z), 0.00001)), atan(z.y, z.x)); }
-      vec2 c_tan(vec2 z) { return c_div(c_sin(z), c_cos(z)); }
-      vec2 c_sinh(vec2 z) { return vec2(sinh(z.x)*cos(z.y), cosh(z.x)*sin(z.y)); }
-      vec2 c_cosh(vec2 z) { return vec2(cosh(z.x)*cos(z.y), sinh(z.x)*sin(z.y)); }
-      vec2 c_sqrt(vec2 z) {
-        float r = length(z);
-        return vec2(sqrt(max(0.0, (r + z.x) * 0.5)), sign(z.y) * sqrt(max(0.0, (r - z.x) * 0.5)));
-      }
-      vec2 c_asin(vec2 z) {
-        vec2 iz = vec2(-z.y, z.x);
-        vec2 sqrtTerm = c_sqrt(c_sub(vec2(1.0, 0.0), c_sqr(z)));
-        vec2 logTerm = c_ln(c_add(iz, sqrtTerm));
-        return vec2(logTerm.y, -logTerm.x);
-      }
-      vec2 c_acos(vec2 z) { return c_sub(vec2(PI * 0.5, 0.0), c_asin(z)); }
-      vec2 c_atan(vec2 z) {
-        vec2 iz = vec2(-z.y, z.x);
-        vec2 num = c_add(vec2(1.0, 0.0), iz);
-        vec2 den = c_sub(vec2(1.0, 0.0), iz);
-        vec2 logTerm = c_ln(c_div(num, den));
-        return vec2(-0.5 * logTerm.y, 0.5 * logTerm.x);
-      }
+      vec2 c_ln(vec2 z) { return vec2(log(length(z)), atan(z.y, z.x)); }
+      vec2 c_pow(vec2 z, float p) { float r = length(z); float a = atan(z.y, z.x); return pow(r, p) * vec2(cos(a*p), sin(a*p)); }
 
-      vec3 hsl2rgb(vec3 c) {
-        vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
-        return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
-      }
+      // Insert User Custom GLSL placeholder
+      __CUSTOM_GLSL_PLACEHOLDER__
 
-      vec3 applyPalette(float val, float angle) {
-        if (u_palette == 1) {
-          return 0.5 + 0.5 * cos(vec3(0.0, 0.33, 0.67) * 6.28318 + val * 3.0);
-        } else if (u_palette == 2) {
-          return mix(vec3(0.02, 0.05, 0.2), vec3(0.3, 0.9, 1.0), sin(val * 6.28) * 0.5 + 0.5);
-        } else if (u_palette == 3) {
-          float c = step(0.5, fract(val * 4.0));
-          return vec3(c * 0.85 + 0.1);
-        } else if (u_palette == 4) {
-          float t = fract(val);
-          if (t < 0.33) return mix(u_customColors[0], u_customColors[1], t / 0.33);
-          if (t < 0.66) return mix(u_customColors[1], u_customColors[2], (t - 0.33) / 0.33);
-          return mix(u_customColors[2], u_customColors[3], (t - 0.66) / 0.34);
+      // Default Formula Evaluator
+      vec2 evalFormula(vec2 z) {
+        if (u_useCustomGLSL) {
+          return evaluateCustom(z);
         }
-        return hsl2rgb(vec3(angle / (2.0 * PI), 0.85, clamp(val * 0.6, 0.15, 0.85)));
+        // Native hardcoded parsing for z^3 - 1.0
+        vec2 z2 = c_mul(z, z);
+        vec2 z3 = c_mul(z2, z);
+        return c_sub(z3, vec2(1.0, 0.0));
       }
 
-      vec3 applyConformalGrid(vec3 col, vec2 fz) {
-        if (!u_showGrid) return col;
-        vec2 grid = abs(fract(fz - 0.5) - 0.5) / max(fwidth(fz), 0.001);
-        float line = min(grid.x, grid.y);
-        float gridPattern = 1.0 - min(line, 1.0);
-        return mix(col, vec3(1.0), gridPattern * 0.35);
+      // Derivative for Newton-Raphson
+      vec2 evalFormulaDeriv(vec2 z) {
+        vec2 z2 = c_mul(z, z);
+        return 3.0 * z2;
       }
-    `;
 
-    const vertShader = /* glsl */ `
-      varying vec2 vUv;
+      // Domain Color Mapper
+      vec3 domainColor(vec2 w) {
+        float mag = length(w);
+        float arg = atan(w.y, w.x);
+        
+        // HSL to RGB mapping
+        float hue = (arg + PI) / (2.0 * PI);
+        float sat = 1.0;
+        float val = 1.0 - 1.0 / (1.0 + 0.5 * log(mag + 1.0));
+
+        // Gridlines & Contours
+        if (u_colorScheme == 1) {
+          float logMag = log(mag);
+          float grid = abs(fract(logMag * 2.0 - 0.5) - 0.5) / fwidth(logMag * 2.0);
+          val *= smoothstep(0.0, 1.5, grid);
+        }
+
+        // Audio reactivity color pulse
+        hue = fract(hue + u_audioLevel * 0.2);
+
+        vec3 c = clamp(abs(mod(hue*6.0 + vec3(0.0,4.0,2.0), 6.0)-3.0)-1.0, 0.0, 1.0);
+        return mix(vec3(1.0), c, sat) * val;
+      }
+
+      // Stereographic Projection (Riemann Sphere)
+      vec2 projectSphere(vec2 uv) {
+        vec2 p = (uv - 0.5) * 2.2 * vec2(u_resolution.x/u_resolution.y, 1.0);
+        
+        // 3D Arcball Rotation matrix
+        float cx = cos(u_rotation.x), sx = sin(u_rotation.x);
+        float cy = cos(u_rotation.y), sy = sin(u_rotation.y);
+        
+        // Raymarch sphere intersection
+        vec3 rd = normalize(vec3(p, -2.0));
+        vec3 ro = vec3(0.0, 0.0, 3.0);
+        
+        float b = dot(ro, rd);
+        float c = dot(ro, ro) - 1.0;
+        float h = b*b - c;
+        if (h < 0.0) return vec2(1e5); // Background
+
+        float t = -b - sqrt(h);
+        vec3 hit = ro + t * rd;
+
+        // Apply Rotations
+        vec3 rHit = hit;
+        rHit.yz = vec2(cx*rHit.y - sx*rHit.z, sx*rHit.y + cx*rHit.z);
+        rHit.xz = vec2(cy*rHit.x + sy*rHit.z, -sy*rHit.x + cy*rHit.z);
+
+        // North pole stereographic mapping z = (x + iy) / (1 - z_coord)
+        return vec2(rHit.x, rHit.y) / (1.0 - rHit.z + 1e-5);
+      }
+
       void main() {
-        vUv = uv;
-        gl_Position = vec4(position, 1.0);
-      }
-    `;
+        vec2 st = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
+        vec2 z;
 
-    function buildFragmentShader(parsedFormulaGLSL) {
-      return glslHeader + `
-        varying vec2 vUv;
-
-        vec2 evalUserFormula(vec2 z) {
-          return ${parsedFormulaGLSL};
-        }
-
-        vec2 evalRational(vec2 z) {
-          vec2 num = c_mul(c_sub(z, u_roots[0]), c_mul(c_sub(z, u_roots[1]), c_sub(z, u_roots[2])));
-          vec2 den = c_mul(c_sub(z, u_poles[0]), c_sub(z, u_poles[1]));
-          return c_div(num, den);
-        }
-
-        vec3 renderComplexDomain(vec2 z) {
-          vec2 fz = evalUserFormula(z);
-          float r = length(fz);
-          float theta = atan(fz.y, fz.x);
-          if (theta < 0.0) theta += 2.0 * PI;
-          float logR = log(r + 1.0);
-          float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
-          vec3 col = applyPalette(val, theta);
-          return applyConformalGrid(col, fz);
-        }
-
-        vec3 renderRootsAndPoles(vec2 z) {
-          vec2 fz = evalRational(z);
-          float r = length(fz);
-          float theta = atan(fz.y, fz.x);
-          if (theta < 0.0) theta += 2.0 * PI;
-          float logR = log(r + 1.0);
-          float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
-          vec3 col = applyPalette(val, theta);
-
-          for (int i = 0; i < 3; i++) {
-            if (length(z - u_roots[i]) < 0.08 * u_zoom) col = vec3(0.0, 1.0, 0.6);
+        if (u_mode == 1) { // Riemann Sphere
+          z = projectSphere(v_uv);
+          if (length(z) > 1e4) {
+            fragColor = vec4(0.02, 0.02, 0.05, 1.0);
+            return;
           }
-          for (int i = 0; i < 2; i++) {
-            if (length(z - u_poles[i]) < 0.08 * u_zoom) col = vec3(1.0, 0.25, 0.4);
-          }
-          return applyConformalGrid(col, fz);
+        } else { // 2D Plane
+          z = st * u_zoom + u_offset;
         }
 
-        vec3 renderJulia(vec2 pos) {
-          vec2 z = pos;
-          float n = 0.0;
-          for (float i = 0.0; i < 128.0; i++) {
-            if (dot(z, z) > 4.0) break;
-            z = c_sqr(z) + u_juliaC;
-            n += 1.0;
-          }
-          if (n >= 128.0) return vec3(0.0);
-          float nu = log(log(dot(z, z)) / 2.0) / log(2.0);
-          return applyPalette((n + 1.0 - nu) * 0.05 + u_time * 0.05, (n + 1.0 - nu) * 0.1);
-        }
+        vec2 w = vec2(0.0);
 
-        float mapHeight(vec2 p) {
-          vec2 fz = evalUserFormula(p);
-          return clamp(log(length(fz) + 1.0), 0.0, 3.0);
-        }
-
-        vec3 calcNormal(vec3 p) {
-          vec2 e = vec2(0.01, 0.0);
-          return normalize(vec3(
-            mapHeight(p.xz + e.xy) - mapHeight(p.xz - e.xy),
-            2.0 * e.x,
-            mapHeight(p.xz + e.yx) - mapHeight(p.xz - e.yx)
-          ));
-        }
-
-        vec3 render3DRaymarch(vec2 st) {
-          vec3 ro = vec3(u_offset.x, 3.0, u_offset.y - 4.0 * u_zoom);
-          vec3 target = vec3(u_offset.x, 0.0, u_offset.y);
-          vec3 ww = normalize(target - ro);
-          vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
-          vec3 vv = cross(uu, ww);
-          vec3 rd = normalize(st.x * uu + st.y * vv + 1.5 * ww);
-
-          float t = 0.0;
+        if (u_mode == 3) { // Newton-Raphson Fractal Mode
+          vec2 currZ = z;
+          float iters = 0.0;
           for (int i = 0; i < 64; i++) {
-            vec3 p = ro + rd * t;
-            float h = mapHeight(p.xz);
-            if (p.y <= h || t > 20.0) break;
-            t += (p.y - h) * 0.4;
+            vec2 f = evalFormula(currZ);
+            vec2 df = evalFormulaDeriv(currZ);
+            currZ = c_sub(currZ, c_div(f, df));
+            if (length(f) < 0.001) break;
+            iters += 1.0;
           }
-
-          if (t < 20.0) {
-            vec3 p = ro + rd * t;
-            vec3 n = calcNormal(p);
-            vec3 light = normalize(vec3(1.0, 2.0, -1.0));
-            float diff = max(dot(n, light), 0.15);
-            vec3 col = applyPalette(p.y * 0.5, atan(p.z, p.x));
-            return col * diff;
-          }
-          return vec3(0.02, 0.04, 0.08);
-        }
-
-        vec3 renderFlowField(vec2 p) {
-          vec2 v = evalUserFormula(p);
-          float speed = length(v);
-          float angle = atan(v.y, v.x);
-          if (angle < 0.0) angle += 2.0 * PI;
-          vec3 col = applyPalette(speed * 0.2, angle);
-          return applyConformalGrid(col, v);
-        }
-
-        vec3 sampleScene(vec2 fragCoord) {
-          vec2 st = (fragCoord - 0.5 * u_resolution.xy) / u_resolution.y;
-          vec2 pos = st * u_zoom + u_offset;
-
-          if (u_mode == 0) return renderComplexDomain(pos);
-          if (u_mode == 1) return renderRootsAndPoles(pos);
-          if (u_mode == 2) return renderJulia(pos);
-          if (u_mode == 3) return render3DRaymarch(st);
-          if (u_mode == 4) return renderFlowField(pos);
-          return vec3(0.0);
-        }
-
-        void main() {
-          if (!u_msaa) {
-            gl_FragColor = vec4(sampleScene(gl_FragCoord.xy), 1.0);
-          } else {
-            vec3 col = vec3(0.0);
-            col += sampleScene(gl_FragCoord.xy + vec2(-0.25, -0.25));
-            col += sampleScene(gl_FragCoord.xy + vec2(0.25, -0.25));
-            col += sampleScene(gl_FragCoord.xy + vec2(-0.25, 0.25));
-            col += sampleScene(gl_FragCoord.xy + vec2(0.25, 0.25));
-            gl_FragColor = vec4(col * 0.25, 1.0);
-          }
-        }
-      `;
-    }
-
-    // --- Parser Engine ---
-    function parseFormulaToGLSL(inputStr) {
-      try {
-        let str = inputStr.trim().toLowerCase().replace(/\s+/g, '');
-        str = str.replace(/z\^2/g, 'c_sqr(z)');
-        str = str.replace(/z\^3/g, 'c_cube(z)');
-        str = str.replace(/z\^([0-9\.]+)/g, 'c_pow(z, $1)');
-        str = str.replace(/ln\(z\)|log\(z\)/g, 'c_ln(z)');
-        str = str.replace(/asin\(z\)|arcsin\(z\)/g, 'c_asin(z)');
-        str = str.replace(/acos\(z\)|arccos\(z\)/g, 'c_acos(z)');
-        str = str.replace(/atan\(z\)|arctan\(z\)/g, 'c_atan(z)');
-        str = str.replace(/sin\(z\)/g, 'c_sin(z)');
-        str = str.replace(/cos\(z\)/g, 'c_cos(z)');
-        str = str.replace(/tan\(z\)/g, 'c_tan(z)');
-        str = str.replace(/sinh\(z\)/g, 'c_sinh(z)');
-        str = str.replace(/cosh\(z\)/g, 'c_cosh(z)');
-        str = str.replace(/sqrt\(z\)/g, 'c_sqrt(z)');
-        str = str.replace(/exp\(z\)/g, 'c_exp(z)');
-        str = str.replace(/(\d+)(?![.\d])/g, '$1.0');
-        if (str === 'z') return 'z';
-        return str;
-      } catch (e) {
-        return 'c_sub(c_cube(z), vec2(1.0, 0.0))';
-      }
-    }
-
-    function renderKaTeX(formulaStr) {
-      const box = document.querySelector('#latex-render-box');
-      try {
-        let latex = formulaStr.replace(/z\^3/g, 'z^3').replace(/z\^2/g, 'z^2').replace(/ln/g, '\\ln').replace(/sin/g, '\\sin').replace(/cos/g, '\\cos');
-        katex.render(`f(z) = ${latex}`, box, { displayMode: true, throwOnError: false });
-      } catch(e) {}
-    }
-
-    // --- Hex to GLSL RGB Helper ---
-    function hexToVec3(hex) {
-      const c = new THREE.Color(hex);
-      return new THREE.Vector3(c.r, c.g, c.b);
-    }
-
-    // --- State & URL Hash Synchronization ---
-    function getStateFromHash() {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      return {
-        formula: params.get('formula') || 'ln(z) + sin(z)',
-        mode: parseInt(params.get('mode') || '0', 10),
-        zoom: parseFloat(params.get('zoom') || '4.0'),
-        ox: parseFloat(params.get('ox') || '0'),
-        oy: parseFloat(params.get('oy') || '0')
-      };
-    }
-
-    const initialState = getStateFromHash();
-
-    const state = {
-      mode: initialState.mode,
-      zoom: initialState.zoom,
-      speed: 1.0,
-      palette: 0,
-      showGrid: true,
-      msaa: false,
-      offset: new THREE.Vector2(initialState.ox, initialState.oy),
-      juliaC: new THREE.Vector2(-0.7, 0.27015),
-      roots: [new THREE.Vector2(-1, 0), new THREE.Vector2(1, 0), new THREE.Vector2(0, 1)],
-      poles: [new THREE.Vector2(0, -1), new THREE.Vector2(0.5, 0.5)]
-    };
-
-    function updateUrlHash() {
-      const exprInput = document.querySelector('#expr-input');
-      const params = new URLSearchParams();
-      params.set('formula', exprInput.value);
-      params.set('mode', state.mode);
-      params.set('zoom', state.zoom.toFixed(2));
-      params.set('ox', state.offset.x.toFixed(2));
-      params.set('oy', state.offset.y.toFixed(2));
-      window.history.replaceState(null, '', `#${params.toString()}`);
-    }
-
-    const canvas = document.querySelector('#viz-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    const customColors = [
-      hexToVec3(document.querySelector('#c-stop-1').value),
-      hexToVec3(document.querySelector('#c-stop-2').value),
-      hexToVec3(document.querySelector('#c-stop-3').value),
-      hexToVec3(document.querySelector('#c-stop-4').value)
-    ];
-
-    const uniforms = {
-      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      u_offset: { value: state.offset },
-      u_zoom: { value: state.zoom },
-      u_time: { value: 0 },
-      u_mode: { value: state.mode },
-      u_palette: { value: state.palette },
-      u_showGrid: { value: state.showGrid },
-      u_msaa: { value: state.msaa },
-      u_customColors: { value: customColors },
-      u_juliaC: { value: state.juliaC },
-      u_roots: { value: state.roots },
-      u_poles: { value: state.poles }
-    };
-
-    const exprInput = document.querySelector('#expr-input');
-    exprInput.value = initialState.formula;
-
-    let material = new THREE.ShaderMaterial({
-      vertexShader: vertShader,
-      fragmentShader: buildFragmentShader(parseFormulaToGLSL(exprInput.value)),
-      uniforms
-    });
-
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-    scene.add(mesh);
-
-    function updateShaderFormula(formulaText) {
-      const glslExpr = parseFormulaToGLSL(formulaText);
-      mesh.material.dispose();
-      mesh.material = new THREE.ShaderMaterial({
-        vertexShader: vertShader,
-        fragmentShader: buildFragmentShader(glslExpr),
-        uniforms
-      });
-      renderKaTeX(formulaText);
-      updateUrlHash();
-    }
-
-    // --- UI Controls & Start Screen Logic ---
-    const startScreen = document.querySelector('#start-screen');
-    const startInput = document.querySelector('#start-input');
-
-    function launchVisualizer(mode, formula) {
-      if (mode !== undefined) state.mode = mode;
-      if (formula && formula !== 'rational' && formula !== 'julia') {
-        exprInput.value = formula;
-        updateShaderFormula(formula);
-      }
-      syncModeUI();
-      startScreen.classList.add('hidden');
-    }
-
-    document.querySelector('#launch-btn').addEventListener('click', () => {
-      launchVisualizer(0, startInput.value);
-    });
-
-    document.querySelectorAll('.preset-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const mode = parseInt(card.dataset.mode, 10);
-        const formula = card.dataset.formula;
-        launchVisualizer(mode, formula);
-      });
-    });
-
-    document.querySelector('#open-menu-btn').addEventListener('click', () => {
-      startScreen.classList.remove('hidden');
-    });
-
-    const modeBtns = document.querySelectorAll('.mode-btn');
-    const rootsLegend = document.querySelector('#roots-legend');
-    const juliaCard = document.querySelector('#julia-param-card');
-    const formulaGroup = document.querySelector('#formula-group');
-
-    function syncModeUI() {
-      modeBtns.forEach((b) => b.classList.remove('active'));
-      modeBtns[state.mode].classList.add('active');
-      uniforms.u_mode.value = state.mode;
-
-      rootsLegend.style.display = state.mode === 1 ? 'flex' : 'none';
-      juliaCard.style.display = state.mode === 2 ? 'block' : 'none';
-      formulaGroup.style.display = (state.mode === 1 || state.mode === 2) ? 'none' : 'flex';
-      updateUrlHash();
-    }
-
-    modeBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        state.mode = parseInt(btn.dataset.mode, 10);
-        syncModeUI();
-      });
-    });
-
-    exprInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') updateShaderFormula(e.target.value);
-    });
-
-    const paletteSelect = document.querySelector('#palette-select');
-    const customPaletteBox = document.querySelector('#custom-palette-box');
-
-    paletteSelect.addEventListener('change', (e) => {
-      state.palette = parseInt(e.target.value, 10);
-      uniforms.u_palette.value = state.palette;
-      customPaletteBox.style.display = state.palette === 4 ? 'flex' : 'none';
-    });
-
-    ['#c-stop-1', '#c-stop-2', '#c-stop-3', '#c-stop-4'].forEach((id, index) => {
-      document.querySelector(id).addEventListener('input', (e) => {
-        customColors[index].copy(hexToVec3(e.target.value));
-      });
-    });
-
-    document.querySelector('#grid-toggle').addEventListener('change', (e) => {
-      state.showGrid = e.target.checked;
-      uniforms.u_showGrid.value = state.showGrid;
-    });
-
-    document.querySelector('#msaa-toggle').addEventListener('change', (e) => {
-      state.msaa = e.target.checked;
-      uniforms.u_msaa.value = state.msaa;
-    });
-
-    document.querySelector('#speed-slider').addEventListener('input', (e) => {
-      state.speed = parseFloat(e.target.value);
-      document.querySelector('#speed-val').textContent = state.speed.toFixed(1);
-    });
-
-    // --- Export & Link Sharing ---
-    document.querySelector('#export-btn').addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = `math-atlas-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-
-    document.querySelector('#share-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        alert('Shareable link copied to clipboard!');
-      });
-    });
-
-    // --- Recording Engine ---
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    const recordBtn = document.querySelector('#record-btn');
-
-    recordBtn.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        recordBtn.textContent = '🎥 Record MP4/WebM';
-      } else {
-        const stream = canvas.captureStream(60);
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-        recordedChunks = [];
-
-        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(recordedChunks, { type: 'video/webm' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `math-loop-${Date.now()}.webm`;
-          a.click();
-        };
-
-        mediaRecorder.start();
-        recordBtn.textContent = '⏹️ Stop Recording';
-      }
-    });
-
-    // --- Mouse & Touch Gesture Engine ---
-    let isDragging = false;
-    let draggedHandle = null;
-    let prevPointer = { x: 0, y: 0 };
-    let initialPinchDist = null;
-    const hudOverlay = document.querySelector('#hud-overlay');
-
-    function getPointerPos(e) {
-      if (e.touches && e.touches.length > 0) {
-        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-      return { x: e.clientX, y: e.clientY };
-    }
-
-    function handlePointerDown(e) {
-      if (e.target.closest('.hud-interactive') || e.target.closest('#start-screen')) return;
-      isDragging = true;
-      hudOverlay.classList.add('autohide');
-
-      if (e.touches && e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        initialPinchDist = Math.hypot(dx, dy);
-        return;
-      }
-
-      const p = getPointerPos(e);
-      prevPointer = p;
-
-      const aspect = window.innerWidth / window.innerHeight;
-      const zReal = ((p.x / window.innerWidth) * 2 - 1) * state.zoom * aspect + state.offset.x;
-      const zImag = -((p.y / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
-      const clickPos = new THREE.Vector2(zReal, zImag);
-
-      if (state.mode === 1) {
-        for (let r of state.roots) { if (r.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = r; return; } }
-        for (let p of state.poles) { if (p.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = p; return; } }
-      }
-
-      if (state.mode === 2) {
-        state.juliaC.copy(clickPos);
-        document.querySelector('#readout-c').textContent = `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
-      }
-    }
-
-    function handlePointerMove(e) {
-      if (e.touches && e.touches.length === 2 && initialPinchDist) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.hypot(dx, dy);
-        const factor = initialPinchDist / dist;
-        state.zoom = Math.max(0.01, Math.min(100.0, state.zoom * (1 + (factor - 1) * 0.1)));
-        uniforms.u_zoom.value = state.zoom;
-        initialPinchDist = dist;
-        updateUrlHash();
-        return;
-      }
-
-      const p = getPointerPos(e);
-      const aspect = window.innerWidth / window.innerHeight;
-      const zReal = ((p.x / window.innerWidth) * 2 - 1) * state.zoom * aspect + state.offset.x;
-      const zImag = -((p.y / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
-
-      document.querySelector('#readout-z').textContent = `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
-
-      if (isDragging) {
-        if (draggedHandle) { draggedHandle.set(zReal, zImag); return; }
-        if (state.mode === 2) {
-          state.juliaC.set(zReal, zImag);
-          document.querySelector('#readout-c').textContent = `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
+          float norm = iters / 64.0;
+          fragColor = vec4(domainColor(currZ) * (1.0 - norm), 1.0);
           return;
         }
 
-        const dx = p.x - prevPointer.x;
-        const dy = p.y - prevPointer.y;
-        state.offset.x -= (dx / window.innerHeight) * state.zoom;
-        state.offset.y += (dy / window.innerHeight) * state.zoom;
-        prevPointer = p;
-        updateUrlHash();
+        // Standard Complex Mapping
+        w = evalFormula(z);
+        fragColor = vec4(domainColor(w), 1.0);
+      }
+    `;
+
+    // --- ENGINE INITIALIZATION ---
+    function initEngine() {
+      const canvas1 = document.getElementById('canvas-primary');
+      const canvas2 = document.getElementById('canvas-secondary');
+
+      gl1 = canvas1.getContext('webgl2');
+      gl2 = canvas2.getContext('webgl2');
+
+      if (!gl1 || !gl2) {
+        alert('WebGL2 unsupported on this browser/device.');
+        return;
+      }
+
+      // Check WebGPU availability dynamically for badge UI
+      if (navigator.gpu) {
+        document.getElementById('backend-badge').innerText = 'WebGPU Ready';
+      }
+
+      program1 = createShaderProgram(gl1, FRAGMENT_SHADER_BASE.replace('__CUSTOM_GLSL_PLACEHOLDER__', 'vec2 evaluateCustom(vec2 z){ return z; }'));
+      program2 = createShaderProgram(gl2, FRAGMENT_SHADER_BASE.replace('__CUSTOM_GLSL_PLACEHOLDER__', 'vec2 evaluateCustom(vec2 z){ return z; }'));
+
+      setupQuadGeometry(gl1, program1);
+      setupQuadGeometry(gl2, program2);
+
+      attachEventListeners();
+      resizeCanvases();
+      requestAnimationFrame(renderLoop);
+    }
+
+    function createShaderProgram(gl, fragSrc) {
+      const vertShader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vertShader, VERTEX_SHADER_SRC);
+      gl.compileShader(vertShader);
+
+      const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fragShader, fragSrc);
+      gl.compileShader(fragShader);
+
+      if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
+        console.error('Shader Compile Error:', gl.getShaderInfoLog(fragShader));
+      }
+
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vertShader);
+      gl.attachShader(prog, fragShader);
+      gl.linkProgram(prog);
+      return prog;
+    }
+
+    function setupQuadGeometry(gl, program) {
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,  1, -1, -1,  1,
+        -1,  1,  1, -1,  1,  1
+      ]), gl.STATIC_DRAW);
+
+      const posLoc = gl.getAttribLocation(program, 'a_position');
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    // --- RENDER LOOP ---
+    function renderLoop(time) {
+      time *= 0.001; // Convert to seconds
+
+      let audioLevel = 0.0;
+      if (STATE.micEnabled && analyserNode) {
+        const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        analyserNode.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        audioLevel = sum / (dataArray.length * 255.0);
+        drawAudioVis(dataArray);
+      }
+
+      // Draw Primary Canvas
+      renderPane(gl1, program1, STATE.mode === 'sphere' ? 1 : (STATE.mode === 'newton' ? 3 : 0), time, audioLevel);
+
+      // Draw Secondary Canvas if in Split Mode
+      if (STATE.mode === 'split') {
+        renderPane(gl2, program2, 0, time, audioLevel);
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    function renderPane(gl, program, modeOverride, time, audioLevel) {
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.useProgram(program);
+
+      // Uniform Bindings
+      gl.uniform2f(gl.getUniformLocation(program, 'u_resolution'), gl.canvas.width, gl.canvas.height);
+      gl.uniform2f(gl.getUniformLocation(program, 'u_offset'), STATE.offset[0], STATE.offset[1]);
+      gl.uniform1f(gl.getUniformLocation(program, 'u_zoom'), STATE.zoom);
+      gl.uniform2f(gl.getUniformLocation(program, 'u_rotation'), STATE.rotation[0], STATE.rotation[1]);
+      gl.uniform1i(gl.getUniformLocation(program, 'u_mode'), modeOverride);
+      gl.uniform1i(gl.getUniformLocation(program, 'u_colorScheme'), STATE.colorScheme);
+      gl.uniform1f(gl.getUniformLocation(program, 'u_time'), time);
+      gl.uniform1f(gl.getUniformLocation(program, 'u_audioLevel'), audioLevel);
+      gl.uniform1i(gl.getUniformLocation(program, 'u_useCustomGLSL'), STATE.useCustomGLSL ? 1 : 0);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    // --- AUDIO SYNTHESIS & MIC ENGINE ---
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        oscNode = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+
+        oscNode.type = 'sine';
+        oscNode.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+
+        oscNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscNode.start();
+      }
+      audioCtx.resume();
+    }
+
+    function updateAudioSynth(x, y) {
+      if (!STATE.audioEnabled || !audioCtx) return;
+      // Map domain plane position to audio pitch & gain
+      const freq = Math.min(2000, Math.max(100, (y + 2.0) * 200 + 200));
+      oscNode.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+    }
+
+    async function initMic() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 64;
+        source.connect(analyserNode);
+        STATE.micEnabled = true;
+        document.getElementById('btn-toggle-mic').innerText = 'ON';
+        document.getElementById('btn-toggle-mic').classList.add('active');
+      } catch (err) {
+        alert('Microphone access refused or unavailable.');
       }
     }
 
-    function handlePointerUp() {
-      isDragging = false;
-      draggedHandle = null;
-      initialPinchDist = null;
-      hudOverlay.classList.remove('autohide');
+    function drawAudioVis(data) {
+      const cvs = document.getElementById('audio-vis');
+      const ctx = cvs.getContext('2d');
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      ctx.fillStyle = '#00f2fe';
+      const barWidth = cvs.width / data.length;
+      for (let i = 0; i < data.length; i++) {
+        const h = (data[i] / 255) * cvs.height;
+        ctx.fillRect(i * barWidth, cvs.height - h, barWidth - 1, h);
+      }
     }
 
-    window.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
+    // --- EVENT LISTENERS & GESTURES ---
+    function attachEventListeners() {
+      const container = document.getElementById('viewport-container');
 
-    window.addEventListener('touchstart', handlePointerDown, { passive: false });
-    window.addEventListener('touchmove', handlePointerMove, { passive: false });
-    window.addEventListener('touchend', handlePointerUp);
+      container.addEventListener('mousedown', (e) => {
+        STATE.isDragging = true;
+        STATE.lastMouse = [e.clientX, e.clientY];
+        if (STATE.audioEnabled) initAudio();
+      });
 
-    window.addEventListener('wheel', (e) => {
-      const factor = e.deltaY > 0 ? 1.08 : 0.92;
-      state.zoom = Math.max(0.01, Math.min(100.0, state.zoom * factor));
-      uniforms.u_zoom.value = state.zoom;
-      updateUrlHash();
-    }, { passive: true });
+      window.addEventListener('mouseup', () => STATE.isDragging = false);
 
-    window.addEventListener('resize', () => {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
-    });
+      container.addEventListener('mousemove', (e) => {
+        if (!STATE.isDragging) return;
+        const dx = e.clientX - STATE.lastMouse[0];
+        const dy = e.clientY - STATE.lastMouse[1];
+        STATE.lastMouse = [e.clientX, e.clientY];
 
-    // --- Render Loop & Performance Monitor ---
-    const clock = new THREE.Clock();
-    let elapsedTime = 0;
-    let frameCount = 0;
-    let lastFpsCheck = performance.now();
-
-    renderKaTeX(exprInput.value);
-
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      elapsedTime += delta * state.speed;
-      uniforms.u_time.value = elapsedTime;
-
-      frameCount++;
-      const now = performance.now();
-      if (now - lastFpsCheck >= 1000) {
-        const fps = Math.round((frameCount * 1000) / (now - lastFpsCheck));
-        document.querySelector('#readout-fps').textContent = `${fps} FPS`;
-
-        if (fps < 40 && renderer.getPixelRatio() > 0.75) {
-          renderer.setPixelRatio(renderer.getPixelRatio() * 0.9);
-        } else if (fps > 58 && renderer.getPixelRatio() < window.devicePixelRatio) {
-          renderer.setPixelRatio(Math.min(window.devicePixelRatio, renderer.getPixelRatio() * 1.05));
+        if (STATE.mode === 'sphere') {
+          STATE.rotation[0] += dy * 0.01;
+          STATE.rotation[1] += dx * 0.01;
+        } else {
+          STATE.offset[0] -= (dx / window.innerWidth) * 2.0 * STATE.zoom;
+          STATE.offset[1] += (dy / window.innerHeight) * 2.0 * STATE.zoom;
+          updateAudioSynth(STATE.offset[0], STATE.offset[1]);
         }
+      });
 
-        frameCount = 0;
-        lastFpsCheck = now;
-      }
+      container.addEventListener('wheel', (e) => {
+        const factor = e.deltaY > 0 ? 1.1 : 0.9;
+        STATE.zoom *= factor;
+      });
 
-      renderer.render(scene, camera);
+      // UI Toggles & Handlers
+      document.getElementById('hud-toggle').addEventListener('click', () => {
+        document.getElementById('hud').classList.toggle('collapsed');
+      });
+
+      document.getElementById('btn-mode-2d').addEventListener('click', (e) => setMode('2d', e.target));
+      document.getElementById('btn-mode-sphere').addEventListener('click', (e) => setMode('sphere', e.target));
+      document.getElementById('btn-mode-split').addEventListener('click', (e) => setMode('split', e.target));
+      document.getElementById('btn-mode-newton').addEventListener('click', (e) => setMode('newton', e.target));
+
+      document.getElementById('color-scheme').addEventListener('change', (e) => {
+        STATE.colorScheme = parseInt(e.target.value);
+      });
+
+      document.getElementById('btn-toggle-audio').addEventListener('click', (e) => {
+        STATE.audioEnabled = !STATE.audioEnabled;
+        e.target.innerText = STATE.audioEnabled ? 'ON' : 'OFF';
+        e.target.classList.toggle('active', STATE.audioEnabled);
+        if (STATE.audioEnabled) initAudio();
+        else if (gainNode) gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      });
+
+      document.getElementById('btn-toggle-mic').addEventListener('click', () => {
+        if (!STATE.micEnabled) initMic();
+      });
+
+      document.getElementById('btn-open-editor').addEventListener('click', () => {
+        document.getElementById('editor-drawer').classList.toggle('open');
+      });
+
+      document.getElementById('btn-compile-glsl').addEventListener('click', () => {
+        const customCode = document.getElementById('code-editor').value;
+        const newFrag = FRAGMENT_SHADER_BASE.replace('__CUSTOM_GLSL_PLACEHOLDER__', customCode);
+        try {
+          const newProg1 = createShaderProgram(gl1, newFrag);
+          program1 = newProg1;
+          STATE.useCustomGLSL = true;
+          alert('GLSL Compiled and Executed Successfully!');
+        } catch (e) {
+          alert('GLSL Compilation Error. Check browser console.');
+        }
+      });
+
+      document.getElementById('btn-export-svg').addEventListener('click', exportSVG);
+
+      window.addEventListener('resize', resizeCanvases);
     }
 
-    animate();
+    function setMode(mode, btn) {
+      STATE.mode = mode;
+      document.querySelectorAll('.btn-grid button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const secPane = document.getElementById('pane-secondary');
+      if (mode === 'split') {
+        secPane.classList.remove('hidden');
+      } else {
+        secPane.classList.add('hidden');
+      }
+      resizeCanvases();
+    }
+
+    function resizeCanvases() {
+      const c1 = document.getElementById('canvas-primary');
+      const c2 = document.getElementById('canvas-secondary');
+      
+      c1.width = c1.parentElement.clientWidth;
+      c1.height = c1.parentElement.clientHeight;
+
+      if (STATE.mode === 'split') {
+        c2.width = c2.parentElement.clientWidth;
+        c2.height = c2.parentElement.clientHeight;
+      }
+    }
+
+    // --- VECTOR SVG EXPORT ENGINE ---
+    function exportSVG() {
+      const width = 800, height = 800;
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background:#0a0b10;">`;
+      
+      const gridCount = 20;
+      const step = width / gridCount;
+
+      for (let x = 0; x <= width; x += step) {
+        for (let y = 0; y <= height; y += step) {
+          // Normalize to complex coordinates
+          const zRe = ((x / width) - 0.5) * 4.0 * STATE.zoom + STATE.offset[0];
+          const zIm = (0.5 - (y / height)) * 4.0 * STATE.zoom + STATE.offset[1];
+          
+          // Vector magnitude / phase angle line calculation (z^3 - 1)
+          const wRe = zRe*zRe*zRe - 3.0*zRe*zIm*zIm - 1.0;
+          const wIm = 3.0*zRe*zRe*zIm - zIm*zIm*zIm;
+          
+          const angle = Math.atan2(wIm, wRe);
+          const len = 12.0;
+          const x2 = x + Math.cos(angle) * len;
+          const y2 = y - Math.sin(angle) * len;
+
+          svg += `<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" stroke="#00f2fe" stroke-width="1.5" stroke-linecap="round" opacity="0.8" />`;
+          svg += `<circle cx="${x}" cy="${y}" r="1.5" fill="#7f00ff" />`;
+        }
+      }
+
+      svg += `</svg>`;
+
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'complex_vector_field.svg';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Initialize application when DOM is ready
+    window.addEventListener('DOMContentLoaded', initEngine);
   </script>
 </body>
 </html>
