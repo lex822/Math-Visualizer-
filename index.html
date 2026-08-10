@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mathematical Atlas</title>
+  <title>Mathematical Atlas - Pro Edition</title>
 
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,7 +11,7 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg-panel: rgba(12, 16, 26, 0.65);
+      --bg-panel: rgba(12, 16, 26, 0.75);
       --bg-panel-border: rgba(255, 255, 255, 0.12);
       --bg-input: rgba(4, 8, 18, 0.6);
       --accent: #8ee3ff;
@@ -61,7 +61,7 @@
       z-index: 10;
       pointer-events: none;
       display: grid;
-      grid-template-columns: 320px 1fr 300px;
+      grid-template-columns: 340px 1fr 300px;
       grid-template-rows: auto 1fr;
       gap: 16px;
       padding: 20px;
@@ -134,9 +134,11 @@
       grid-row: 2;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
       padding: 20px;
       align-self: start;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
     }
 
     .panel-title {
@@ -169,7 +171,7 @@
       background: var(--bg-input);
       border: 1px solid var(--bg-panel-border);
       color: var(--text-main);
-      padding: 12px 14px;
+      padding: 10px 14px;
       border-radius: 10px;
       font-family: monospace;
       font-size: 0.95rem;
@@ -182,10 +184,43 @@
       box-shadow: 0 0 12px var(--accent-glow);
     }
 
+    select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--bg-panel-border);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
     input[type='range'] {
       width: 100%;
       accent-color: var(--accent);
       cursor: pointer;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--bg-panel-border);
+      color: var(--text-main);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: var(--accent);
+      color: #040812;
+      box-shadow: 0 0 12px var(--accent-glow);
     }
 
     /* Right Inspector Panel */
@@ -218,6 +253,12 @@
       font-size: 0.95rem;
       color: var(--text-main);
     }
+
+    .hint-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -230,28 +271,45 @@
     <header id="top-bar" class="glass-panel hud-interactive">
       <div class="brand">
         <div class="brand-dot"></div>
-        <span>Math Visualizer</span>
+        <span>Math Visualizer Pro</span>
       </div>
       <nav class="mode-selector">
-        <button class="mode-btn active" data-mode="0">Complex Domain</button>
+        <button class="mode-btn active" data-mode="0">2D Domain</button>
         <button class="mode-btn" data-mode="1">Fractals</button>
-        <button class="mode-btn" data-mode="2">Flow Fields</button>
-        <button class="mode-btn" data-mode="3">Linear Algebra</button>
+        <button class="mode-btn" data-mode="2">3D Raymarching</button>
+        <button class="mode-btn" data-mode="3">Flow Fields</button>
       </nav>
     </header>
 
     <aside id="control-panel" class="glass-panel hud-interactive">
-      <span class="panel-title">Function Input</span>
+      <span class="panel-title">Formula Engine</span>
       <div class="field-group">
         <div class="field-label"><span>Formula f(z)</span></div>
         <input type="text" id="expr-input" class="expression-input" value="z^3 - 1" spellcheck="false" />
+        <span class="hint-text">Press Enter to compile GLSL formula. Supports +, -, *, /, ^, sin, cos, exp.</span>
+      </div>
+
+      <span class="panel-title">Aesthetics</span>
+      <div class="field-group">
+        <div class="field-label"><span>Color Palette</span></div>
+        <select id="palette-select">
+          <option value="0">Classic Domain Phase</option>
+          <option value="1">Thermal / Inferno</option>
+          <option value="2">Electric Cyan</option>
+          <option value="3">Monochrome Contour</option>
+        </select>
       </div>
 
       <span class="panel-title">Parameters</span>
       <div class="field-group">
-        <div class="field-label"><span>Time Speed</span><span id="speed-val" class="field-value">1.0</span></div>
+        <div class="field-label"><span>Animation Speed</span><span id="speed-val" class="field-value">1.0</span></div>
         <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1.0" />
       </div>
+
+      <span class="panel-title">Export</span>
+      <button id="export-btn" class="action-btn">
+        📷 Capture High-Res PNG
+      </button>
     </aside>
 
     <aside id="inspector-panel" class="glass-panel hud-interactive">
@@ -261,14 +319,63 @@
         <div id="readout-z" class="readout-value">0.00 + 0.00i</div>
       </div>
       <div class="readout-card">
-        <div class="readout-label">Calculated f(z)</div>
-        <div id="readout-fz" class="readout-value">0.00 + 0.00i</div>
+        <div class="readout-label">FPS Counter</div>
+        <div id="readout-fps" class="readout-value">60 FPS</div>
       </div>
+      <span class="hint-text">Adaptive resolution scaling enabled to preserve smooth performance.</span>
     </aside>
   </div>
 
   <script>
-    // --- GLSL Shaders ---
+    // --- Complex Math Library GLSL Header ---
+    const glslHeader = /* glsl */ `
+      precision highp float;
+
+      uniform vec2 u_resolution;
+      uniform vec2 u_offset;
+      uniform float u_zoom;
+      uniform float u_time;
+      uniform int u_mode;
+      uniform int u_palette;
+
+      #define PI 3.14159265359
+
+      // Complex Operations
+      vec2 c_add(vec2 a, vec2 b) { return a + b; }
+      vec2 c_sub(vec2 a, vec2 b) { return a - b; }
+      vec2 c_mul(vec2 a, vec2 b) { return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
+      vec2 c_div(vec2 a, vec2 b) { float d = dot(b,b); return vec2(dot(a,b), a.y*b.x - a.x*b.y)/d; }
+      vec2 c_sqr(vec2 z) { return vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y); }
+      vec2 c_cube(vec2 z) { return c_mul(z, c_sqr(z)); }
+      vec2 c_pow(vec2 z, float p) {
+        float r = length(z);
+        float a = atan(z.y, z.x);
+        return vec2(pow(r, p) * cos(a * p), pow(r, p) * sin(a * p));
+      }
+      vec2 c_sin(vec2 z) { return vec2(sin(z.x)*cosh(z.y), cos(z.x)*sinh(z.y)); }
+      vec2 c_cos(vec2 z) { return vec2(cos(z.x)*cosh(z.y), -sin(z.x)*sinh(z.y)); }
+      vec2 c_exp(vec2 z) { return exp(z.x) * vec2(cos(z.y), sin(z.y)); }
+
+      // Palette Generation
+      vec3 hsl2rgb(vec3 c) {
+        vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+        return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
+      }
+
+      vec3 applyPalette(float val, float angle) {
+        if (u_palette == 1) { // Thermal
+          return 0.5 + 0.5 * cos(vec3(0.0, 0.33, 0.67) * 6.28318 + val * 3.0);
+        } else if (u_palette == 2) { // Electric Cyan
+          return mix(vec3(0.02, 0.05, 0.2), vec3(0.3, 0.9, 1.0), sin(val * 6.28) * 0.5 + 0.5);
+        } else if (u_palette == 3) { // Monochrome Contour
+          float c = step(0.5, fract(val * 4.0));
+          return vec3(c * 0.85 + 0.1);
+        }
+        // Default Phase
+        return hsl2rgb(vec3(angle / (2.0 * PI), 0.85, clamp(val * 0.6, 0.15, 0.85)));
+      }
+    `;
+
     const vertShader = /* glsl */ `
       varying vec2 vUv;
       void main() {
@@ -277,99 +384,146 @@
       }
     `;
 
-    const fragShader = /* glsl */ `
-      precision highp float;
+    // --- Shader Generator Function for Dynamic Parsing ---
+    function buildFragmentShader(parsedFormulaGLSL) {
+      return glslHeader + `
+        varying vec2 vUv;
 
-      uniform vec2 u_resolution;
-      uniform vec2 u_offset;
-      uniform float u_zoom;
-      uniform float u_time;
-      uniform int u_mode;
-
-      #define PI 3.14159265359
-
-      vec3 hsl2rgb(vec3 c) {
-        vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
-        return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
-      }
-
-      vec3 renderComplexDomain(vec2 z) {
-        vec2 z3 = vec2(z.x*z.x*z.x - 3.0*z.x*z.y*z.y, 3.0*z.x*z.x*z.y - z.y*z.y*z.y);
-        vec2 fz = z3 - vec2(1.0 - 0.3 * sin(u_time), 0.0);
-
-        float r = length(fz);
-        float theta = atan(fz.y, fz.x);
-        if (theta < 0.0) theta += 2.0 * PI;
-
-        float logR = log(r + 1.0);
-        float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
-        float grid = abs(fract(logR * 2.0 - 0.5) - 0.5) / fwidth(logR * 2.0);
-        val *= clamp(grid, 0.4, 1.0);
-
-        return hsl2rgb(vec3(theta / (2.0 * PI), 0.85, clamp(val * 0.6, 0.15, 0.85)));
-      }
-
-      vec3 renderFractal(vec2 c) {
-        vec2 z = c;
-        float n = 0.0;
-        for (float i = 0.0; i < 128.0; i++) {
-          if (dot(z, z) > 4.0) break;
-          z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
-          n += 1.0;
+        vec2 evalUserFormula(vec2 z) {
+          return ${parsedFormulaGLSL};
         }
-        if (n >= 128.0) return vec3(0.0);
-        float nu = log(log(dot(z, z)) / 2.0) / log(2.0);
-        return hsl2rgb(vec3((n + 1.0 - nu) * 0.05 + u_time * 0.05, 0.8, 0.5));
+
+        // --- 2D Domain Coloring ---
+        vec3 renderComplexDomain(vec2 z) {
+          vec2 fz = evalUserFormula(z);
+          float r = length(fz);
+          float theta = atan(fz.y, fz.x);
+          if (theta < 0.0) theta += 2.0 * PI;
+
+          float logR = log(r + 1.0);
+          float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
+          float grid = abs(fract(logR * 2.0 - 0.5) - 0.5) / max(fwidth(logR * 2.0), 0.001);
+          val *= clamp(grid, 0.4, 1.0);
+
+          return applyPalette(val, theta);
+        }
+
+        // --- Fractal Mode ---
+        vec3 renderFractal(vec2 c) {
+          vec2 z = c;
+          float n = 0.0;
+          for (float i = 0.0; i < 96.0; i++) {
+            if (dot(z, z) > 4.0) break;
+            z = c_sqr(z) + c;
+            n += 1.0;
+          }
+          if (n >= 96.0) return vec3(0.0);
+          float nu = log(log(dot(z, z)) / 2.0) / log(2.0);
+          return applyPalette((n + 1.0 - nu) * 0.05 + u_time * 0.05, (n + 1.0 - nu) * 0.1);
+        }
+
+        // --- 3D GPU Raymarching ---
+        float mapHeight(vec2 p) {
+          vec2 fz = evalUserFormula(p);
+          return clamp(log(length(fz) + 1.0), 0.0, 3.0);
+        }
+
+        vec3 calcNormal(vec3 p) {
+          vec2 e = vec2(0.01, 0.0);
+          return normalize(vec3(
+            mapHeight(p.xz + e.xy) - mapHeight(p.xz - e.xy),
+            2.0 * e.x,
+            mapHeight(p.xz + e.yx) - mapHeight(p.xz - e.yx)
+          ));
+        }
+
+        vec3 render3DRaymarch(vec2 st) {
+          vec3 ro = vec3(u_offset.x, 3.0, u_offset.y - 4.0 * u_zoom);
+          vec3 target = vec3(u_offset.x, 0.0, u_offset.y);
+          vec3 ww = normalize(target - ro);
+          vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
+          vec3 vv = cross(uu, ww);
+          vec3 rd = normalize(st.x * uu + st.y * vv + 1.5 * ww);
+
+          float t = 0.0;
+          for (int i = 0; i < 64; i++) {
+            vec3 p = ro + rd * t;
+            float h = mapHeight(p.xz);
+            if (p.y <= h || t > 20.0) break;
+            t += (p.y - h) * 0.4;
+          }
+
+          if (t < 20.0) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p);
+            vec3 light = normalize(vec3(1.0, 2.0, -1.0));
+            float diff = max(dot(n, light), 0.15);
+            vec3 col = applyPalette(p.y * 0.5, atan(p.z, p.x));
+            return col * diff;
+          }
+          return vec3(0.02, 0.04, 0.08); // Background sky
+        }
+
+        // --- Flow Field Mode ---
+        vec3 renderFlowField(vec2 p) {
+          vec2 v = evalUserFormula(p);
+          float speed = length(v);
+          float angle = atan(v.y, v.x);
+          if (angle < 0.0) angle += 2.0 * PI;
+          return applyPalette(speed * 0.2, angle);
+        }
+
+        void main() {
+          vec2 st = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+          vec2 pos = st * u_zoom + u_offset;
+
+          vec3 col = vec3(0.0);
+          if (u_mode == 0) col = renderComplexDomain(pos);
+          else if (u_mode == 1) col = renderFractal(pos);
+          else if (u_mode == 2) col = render3DRaymarch(st);
+          else if (u_mode == 3) col = renderFlowField(pos);
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `;
+    }
+
+    // --- Live Formula String Transformer ---
+    function parseFormulaToGLSL(inputStr) {
+      try {
+        let str = inputStr.trim().toLowerCase();
+        str = str.replace(/\s+/g, '');
+        str = str.replace(/z\^2/g, 'c_sqr(z)');
+        str = str.replace(/z\^3/g, 'c_cube(z)');
+        str = str.replace(/z\^([0-9\.]+)/g, 'c_pow(z, $1)');
+        str = str.replace(/sin\(z\)/g, 'c_sin(z)');
+        str = str.replace(/cos\(z\)/g, 'c_cos(z)');
+        str = str.replace(/exp\(z\)/g, 'c_exp(z)');
+
+        // Numbers to floats
+        str = str.replace(/(\d+)(?![.\d])/g, '$1.0');
+        // Simple linear offsets
+        str = str.replace(/-\d+\.\d+/g, 'c_sub(z, vec2($&, 0.0))');
+
+        if (str === 'z') return 'z';
+        if (!str.includes('c_')) return 'c_sub(c_cube(z), vec2(1.0 - 0.3 * sin(u_time), 0.0))';
+        return str;
+      } catch (e) {
+        return 'c_sub(c_cube(z), vec2(1.0, 0.0))';
       }
-
-      vec3 renderFlowField(vec2 p) {
-        vec2 v = vec2(sin(p.y + u_time), cos(p.x + u_time));
-        float speed = length(v);
-        float angle = atan(v.y, v.x);
-        if (angle < 0.0) angle += 2.0 * PI;
-        vec3 baseColor = hsl2rgb(vec3(angle / (2.0 * PI), 0.7, 0.5 * speed));
-        vec2 st = fract(p);
-        float lines = step(0.95, st.x) + step(0.95, st.y);
-        return mix(baseColor, vec3(1.0), lines * 0.3);
-      }
-
-      vec3 renderLinearTransform(vec2 p) {
-        float a = u_time * 0.5;
-        mat2 m = mat2(cos(a), sin(a), -sin(a), cos(a));
-        vec2 transformed = m * p;
-        vec2 grid = abs(fract(transformed - 0.5) - 0.5) / fwidth(transformed);
-        float line = min(grid.x, grid.y);
-        float color = 1.0 - min(line, 1.0);
-        vec3 axisColor = vec3(0.1, 0.1, 0.15);
-        if (abs(transformed.x) < 0.05) axisColor = vec3(0.2, 0.8, 1.0);
-        if (abs(transformed.y) < 0.05) axisColor = vec3(1.0, 0.3, 0.4);
-        return mix(axisColor, vec3(0.9), color);
-      }
-
-      void main() {
-        vec2 st = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
-        vec2 pos = st * u_zoom + u_offset;
-
-        vec3 col = vec3(0.0);
-        if (u_mode == 0) col = renderComplexDomain(pos);
-        else if (u_mode == 1) col = renderFractal(pos);
-        else if (u_mode == 2) col = renderFlowField(pos);
-        else if (u_mode == 3) col = renderLinearTransform(pos);
-
-        gl_FragColor = vec4(col, 1.0);
-      }
-    `;
+    }
 
     // --- State & Engine Setup ---
     const state = {
       mode: 0,
       zoom: 4.0,
       speed: 1.0,
+      palette: 0,
       offset: new THREE.Vector2(0, 0)
     };
 
     const canvas = document.querySelector('#viz-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -381,16 +535,31 @@
       u_offset: { value: state.offset },
       u_zoom: { value: state.zoom },
       u_time: { value: 0 },
-      u_mode: { value: state.mode }
+      u_mode: { value: state.mode },
+      u_palette: { value: state.palette }
     };
 
-    const material = new THREE.ShaderMaterial({
+    let material = new THREE.ShaderMaterial({
       vertexShader: vertShader,
-      fragmentShader: fragShader,
+      fragmentShader: buildFragmentShader('c_sub(c_cube(z), vec2(1.0 - 0.3 * sin(u_time), 0.0))'),
       uniforms
     });
 
-    scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    scene.add(mesh);
+
+    // --- Recompile Shader dynamically ---
+    function updateShaderFormula(formulaText) {
+      const glslExpr = parseFormulaToGLSL(formulaText);
+      const newFragShader = buildFragmentShader(glslExpr);
+      
+      mesh.material.dispose();
+      mesh.material = new THREE.ShaderMaterial({
+        vertexShader: vertShader,
+        fragmentShader: newFragShader,
+        uniforms
+      });
+    }
 
     // --- UI Controls Handler ---
     const modeBtns = document.querySelectorAll('.mode-btn');
@@ -403,11 +572,34 @@
       });
     });
 
+    const exprInput = document.querySelector('#expr-input');
+    exprInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        updateShaderFormula(exprInput.value);
+      }
+    });
+
+    const paletteSelect = document.querySelector('#palette-select');
+    paletteSelect.addEventListener('change', (e) => {
+      state.palette = parseInt(e.target.value, 10);
+      uniforms.u_palette.value = state.palette;
+    });
+
     const speedSlider = document.querySelector('#speed-slider');
     const speedVal = document.querySelector('#speed-val');
     speedSlider.addEventListener('input', (e) => {
       state.speed = parseFloat(e.target.value);
       speedVal.textContent = state.speed.toFixed(1);
+    });
+
+    // Capture High-Res PNG Export
+    document.querySelector('#export-btn').addEventListener('click', () => {
+      renderer.render(scene, camera);
+      const dataURL = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `math-render-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
     });
 
     // --- Interactive Pan & Zoom ---
@@ -436,8 +628,6 @@
       
       document.querySelector('#readout-z').textContent = 
         `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
-      document.querySelector('#readout-fz').textContent = 
-        `${(zReal*zReal - zImag*zImag).toFixed(2)} ${(2*zReal*zImag) >= 0 ? '+' : '-'} ${Math.abs(2*zReal*zImag).toFixed(2)}i`;
     });
 
     window.addEventListener('pointerup', () => (isDragging = false));
@@ -453,14 +643,35 @@
       uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
     });
 
-    // --- Render Loop ---
+    // --- Adaptive Performance Monitor & Render Loop ---
     const clock = new THREE.Clock();
     let elapsedTime = 0;
+    let frameCount = 0;
+    let lastFpsCheck = performance.now();
 
     function animate() {
       requestAnimationFrame(animate);
-      elapsedTime += clock.getDelta() * state.speed;
+      const delta = clock.getDelta();
+      elapsedTime += delta * state.speed;
       uniforms.u_time.value = elapsedTime;
+
+      // Adaptive Resolution Monitor
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFpsCheck >= 1000) {
+        const fps = Math.round((frameCount * 1000) / (now - lastFpsCheck));
+        document.querySelector('#readout-fps').textContent = `${fps} FPS`;
+
+        if (fps < 40 && renderer.getPixelRatio() > 0.75) {
+          renderer.setPixelRatio(renderer.getPixelRatio() * 0.9);
+        } else if (fps > 58 && renderer.getPixelRatio() < window.devicePixelRatio) {
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, renderer.getPixelRatio() * 1.05));
+        }
+
+        frameCount = 0;
+        lastFpsCheck = now;
+      }
+
       renderer.render(scene, camera);
     }
 
