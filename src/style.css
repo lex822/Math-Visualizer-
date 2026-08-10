@@ -1,0 +1,220 @@
+:root {
+  color-scheme: dark;
+  --bg-panel: rgba(12, 16, 26, 0.65);
+  --bg-panel-border: rgba(255, 255, 255, 0.12);
+  --bg-input: rgba(4, 8, 18, 0.6);
+  --accent: #8ee3ff;
+  --accent-glow: rgba(142, 227, 255, 0.25);
+  --text-main: #f0f4fc;
+  --text-muted: rgba(240, 244, 252, 0.65);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  user-select: none;
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #04060a;
+  color: var(--text-main);
+}
+
+#viz-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Base Glassmorphism Panel */
+.glass-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--bg-panel-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* Layout HUD Container */
+#hud-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none; /* Allows clicking through to canvas */
+  display: grid;
+  grid-template-columns: 320px 1fr 300px;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+
+/* Enable pointer events on interactive UI containers */
+.hud-interactive {
+  pointer-events: auto;
+}
+
+/* --- Top Bar / Mode Selector --- */
+#top-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.mode-selector {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-panel-border);
+  gap: 4px;
+}
+
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+  color: var(--text-main);
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: #040812;
+  font-weight: 600;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* --- Sidebar Control Panel --- */
+#control-panel {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  align-self: start;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.panel-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.field-value {
+  color: var(--accent);
+  font-family: monospace;
+}
+
+/* Expression Input */
+.expression-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.expression-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--bg-panel-border);
+  color: var(--text-main);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-family: 'Fira Code', monospace, sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.expression-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Sliders */
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* --- Right Inspector / Readout Panel --- */
+#inspector-panel {
+  grid-column: 3;
+  grid-row: 2;
+  padding: 20px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.readout-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.readout-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.readout-value {
+  font-family: monospace;
+  font-size: 1rem;
+  color: var(--text-main);
+}
