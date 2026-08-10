@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mathematical Atlas - Pro Edition</title>
+  <title>Mathematical Atlas - Ultimate Edition</title>
 
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -11,13 +11,15 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg-panel: rgba(12, 16, 26, 0.75);
-      --bg-panel-border: rgba(255, 255, 255, 0.12);
-      --bg-input: rgba(4, 8, 18, 0.6);
+      --bg-panel: rgba(12, 16, 26, 0.78);
+      --bg-panel-border: rgba(255, 255, 255, 0.14);
+      --bg-input: rgba(4, 8, 18, 0.65);
       --accent: #8ee3ff;
-      --accent-glow: rgba(142, 227, 255, 0.25);
+      --accent-glow: rgba(142, 227, 255, 0.3);
       --text-main: #f0f4fc;
       --text-muted: rgba(240, 244, 252, 0.65);
+      --root-color: #00ffaa;
+      --pole-color: #ff4466;
     }
 
     * {
@@ -51,7 +53,7 @@
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-radius: 16px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
 
     /* HUD Layout Overlay */
@@ -61,7 +63,7 @@
       z-index: 10;
       pointer-events: none;
       display: grid;
-      grid-template-columns: 340px 1fr 300px;
+      grid-template-columns: 350px 1fr 300px;
       grid-template-rows: auto 1fr;
       gap: 16px;
       padding: 20px;
@@ -98,7 +100,7 @@
 
     .mode-selector {
       display: flex;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.35);
       padding: 4px;
       border-radius: 999px;
       border: 1px solid var(--bg-panel-border);
@@ -134,7 +136,7 @@
       grid-row: 2;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
       padding: 20px;
       align-self: start;
       max-height: calc(100vh - 120px);
@@ -201,19 +203,42 @@
       cursor: pointer;
     }
 
+    /* Toggle Switches */
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .toggle-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
     /* Action Buttons */
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
     .action-btn {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--bg-panel-border);
       color: var(--text-main);
-      padding: 10px 16px;
+      padding: 10px;
       border-radius: 10px;
+      font-size: 0.82rem;
       font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.2s ease;
     }
 
@@ -231,7 +256,7 @@
       align-self: start;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .readout-card {
@@ -250,7 +275,7 @@
 
     .readout-value {
       font-family: monospace;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: var(--text-main);
     }
 
@@ -259,6 +284,21 @@
       color: var(--text-muted);
       line-height: 1.4;
     }
+
+    .legend-box {
+      display: flex;
+      gap: 12px;
+      font-size: 0.75rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot-root { width: 10px; height: 10px; border-radius: 50%; background: var(--root-color); }
+    .dot-pole { width: 10px; height: 10px; border-radius: 50%; background: var(--pole-color); }
   </style>
 </head>
 <body>
@@ -271,25 +311,37 @@
     <header id="top-bar" class="glass-panel hud-interactive">
       <div class="brand">
         <div class="brand-dot"></div>
-        <span>Math Visualizer Pro</span>
+        <span>Math Visualizer Ultimate</span>
       </div>
       <nav class="mode-selector">
         <button class="mode-btn active" data-mode="0">2D Domain</button>
-        <button class="mode-btn" data-mode="1">Fractals</button>
-        <button class="mode-btn" data-mode="2">3D Raymarching</button>
-        <button class="mode-btn" data-mode="3">Flow Fields</button>
+        <button class="mode-btn" data-mode="1">Roots & Poles</button>
+        <button class="mode-btn" data-mode="2">Julia Explorer</button>
+        <button class="mode-btn" data-mode="3">3D Raymarching</button>
+        <button class="mode-btn" data-mode="4">Flow Fields</button>
       </nav>
     </header>
 
     <aside id="control-panel" class="glass-panel hud-interactive">
-      <span class="panel-title">Formula Engine</span>
+      <span class="panel-title">Presets & Formula</span>
       <div class="field-group">
-        <div class="field-label"><span>Formula f(z)</span></div>
-        <input type="text" id="expr-input" class="expression-input" value="z^3 - 1" spellcheck="false" />
-        <span class="hint-text">Press Enter to compile GLSL formula. Supports +, -, *, /, ^, sin, cos, exp.</span>
+        <div class="field-label"><span>Preset Gallery</span></div>
+        <select id="preset-select">
+          <option value="custom">Custom Formula</option>
+          <option value="zeta">Riemann Zeta Approx</option>
+          <option value="newton">Newton-Raphson Basin (z^3-1)</option>
+          <option value="joukowsky">Joukowsky Airfoil (z + 1/z)</option>
+          <option value="rational">Rational Function (Roots/Poles)</option>
+        </select>
       </div>
 
-      <span class="panel-title">Aesthetics</span>
+      <div class="field-group" id="formula-group">
+        <div class="field-label"><span>Formula f(z)</span></div>
+        <input type="text" id="expr-input" class="expression-input" value="z^3 - 1" spellcheck="false" />
+        <span class="hint-text">Press Enter to compile. Supports +, -, *, /, ^, sin, cos, exp.</span>
+      </div>
+
+      <span class="panel-title">Aesthetics & Grids</span>
       <div class="field-group">
         <div class="field-label"><span>Color Palette</span></div>
         <select id="palette-select">
@@ -300,34 +352,50 @@
         </select>
       </div>
 
+      <div class="toggle-row">
+        <span>Conformal Grid Overlay</span>
+        <input type="checkbox" id="grid-toggle" class="toggle-checkbox" checked />
+      </div>
+
       <span class="panel-title">Parameters</span>
       <div class="field-group">
         <div class="field-label"><span>Animation Speed</span><span id="speed-val" class="field-value">1.0</span></div>
         <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1.0" />
       </div>
 
-      <span class="panel-title">Export</span>
-      <button id="export-btn" class="action-btn">
-        📷 Capture High-Res PNG
-      </button>
+      <span class="panel-title">Tools</span>
+      <div class="btn-grid">
+        <button id="share-btn" class="action-btn">🔗 Copy URL</button>
+        <button id="export-btn" class="action-btn">📷 Save PNG</button>
+      </div>
     </aside>
 
     <aside id="inspector-panel" class="glass-panel hud-interactive">
-      <span class="panel-title">Realtime Readout</span>
+      <span class="panel-title">Realtime Inspector</span>
       <div class="readout-card">
-        <div class="readout-label">Cursor Position (z)</div>
+        <div class="readout-label">Cursor Location (z)</div>
         <div id="readout-z" class="readout-value">0.00 + 0.00i</div>
       </div>
+      <div class="readout-card" id="julia-param-card">
+        <div class="readout-label">Julia Parameter (c)</div>
+        <div id="readout-c" class="readout-value">-0.70 + 0.27i</div>
+      </div>
       <div class="readout-card">
-        <div class="readout-label">FPS Counter</div>
+        <div class="readout-label">Performance</div>
         <div id="readout-fps" class="readout-value">60 FPS</div>
       </div>
-      <span class="hint-text">Adaptive resolution scaling enabled to preserve smooth performance.</span>
+
+      <div class="legend-box" id="roots-legend" style="display: none;">
+        <div class="legend-item"><div class="dot-root"></div><span>Roots (Zeros)</span></div>
+        <div class="legend-item"><div class="dot-pole"></div><span>Poles</span></div>
+      </div>
+
+      <span class="hint-text" id="mode-hint">Drag anywhere to pan. Scroll to zoom.</span>
     </aside>
   </div>
 
   <script>
-    // --- Complex Math Library GLSL Header ---
+    // --- Complex Math GLSL Header ---
     const glslHeader = /* glsl */ `
       precision highp float;
 
@@ -337,6 +405,11 @@
       uniform float u_time;
       uniform int u_mode;
       uniform int u_palette;
+      uniform bool u_showGrid;
+
+      uniform vec2 u_roots[3];
+      uniform vec2 u_poles[2];
+      uniform vec2 u_juliaC;
 
       #define PI 3.14159265359
 
@@ -344,7 +417,7 @@
       vec2 c_add(vec2 a, vec2 b) { return a + b; }
       vec2 c_sub(vec2 a, vec2 b) { return a - b; }
       vec2 c_mul(vec2 a, vec2 b) { return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
-      vec2 c_div(vec2 a, vec2 b) { float d = dot(b,b); return vec2(dot(a,b), a.y*b.x - a.x*b.y)/d; }
+      vec2 c_div(vec2 a, vec2 b) { float d = dot(b,b); return vec2(dot(a,b), a.y*b.x - a.x*b.y)/max(d, 0.0001); }
       vec2 c_sqr(vec2 z) { return vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y); }
       vec2 c_cube(vec2 z) { return c_mul(z, c_sqr(z)); }
       vec2 c_pow(vec2 z, float p) {
@@ -356,7 +429,7 @@
       vec2 c_cos(vec2 z) { return vec2(cos(z.x)*cosh(z.y), -sin(z.x)*sinh(z.y)); }
       vec2 c_exp(vec2 z) { return exp(z.x) * vec2(cos(z.y), sin(z.y)); }
 
-      // Palette Generation
+      // Palette Engine
       vec3 hsl2rgb(vec3 c) {
         vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
         return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
@@ -371,8 +444,16 @@
           float c = step(0.5, fract(val * 4.0));
           return vec3(c * 0.85 + 0.1);
         }
-        // Default Phase
         return hsl2rgb(vec3(angle / (2.0 * PI), 0.85, clamp(val * 0.6, 0.15, 0.85)));
+      }
+
+      // Conformal Grid Overlay
+      vec3 applyConformalGrid(vec3 col, vec2 fz) {
+        if (!u_showGrid) return col;
+        vec2 grid = abs(fract(fz - 0.5) - 0.5) / max(fwidth(fz), 0.001);
+        float line = min(grid.x, grid.y);
+        float gridPattern = 1.0 - min(line, 1.0);
+        return mix(col, vec3(1.0), gridPattern * 0.35);
       }
     `;
 
@@ -384,7 +465,6 @@
       }
     `;
 
-    // --- Shader Generator Function for Dynamic Parsing ---
     function buildFragmentShader(parsedFormulaGLSL) {
       return glslHeader + `
         varying vec2 vUv;
@@ -393,7 +473,14 @@
           return ${parsedFormulaGLSL};
         }
 
-        // --- 2D Domain Coloring ---
+        // Rational Function from Interactive Handles
+        vec2 evalRational(vec2 z) {
+          vec2 num = c_mul(c_sub(z, u_roots[0]), c_mul(c_sub(z, u_roots[1]), c_sub(z, u_roots[2])));
+          vec2 den = c_mul(c_sub(z, u_poles[0]), c_sub(z, u_poles[1]));
+          return c_div(num, den);
+        }
+
+        // 2D Domain Coloring
         vec3 renderComplexDomain(vec2 z) {
           vec2 fz = evalUserFormula(z);
           float r = length(fz);
@@ -402,27 +489,47 @@
 
           float logR = log(r + 1.0);
           float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
-          float grid = abs(fract(logR * 2.0 - 0.5) - 0.5) / max(fwidth(logR * 2.0), 0.001);
-          val *= clamp(grid, 0.4, 1.0);
-
-          return applyPalette(val, theta);
+          vec3 col = applyPalette(val, theta);
+          return applyConformalGrid(col, fz);
         }
 
-        // --- Fractal Mode ---
-        vec3 renderFractal(vec2 c) {
-          vec2 z = c;
+        // Roots & Poles Domain Coloring
+        vec3 renderRootsAndPoles(vec2 z) {
+          vec2 fz = evalRational(z);
+          float r = length(fz);
+          float theta = atan(fz.y, fz.x);
+          if (theta < 0.0) theta += 2.0 * PI;
+
+          float logR = log(r + 1.0);
+          float val = 0.5 + 0.5 * sin(2.0 * PI * logR);
+          vec3 col = applyPalette(val, theta);
+
+          // Draw Roots (Green) & Poles (Red) handles directly in shader
+          for (int i = 0; i < 3; i++) {
+            if (length(z - u_roots[i]) < 0.08 * u_zoom) col = vec3(0.0, 1.0, 0.6);
+          }
+          for (int i = 0; i < 2; i++) {
+            if (length(z - u_poles[i]) < 0.08 * u_zoom) col = vec3(1.0, 0.25, 0.4);
+          }
+
+          return applyConformalGrid(col, fz);
+        }
+
+        // Julia Set Explorer
+        vec3 renderJulia(vec2 pos) {
+          vec2 z = pos;
           float n = 0.0;
-          for (float i = 0.0; i < 96.0; i++) {
+          for (float i = 0.0; i < 128.0; i++) {
             if (dot(z, z) > 4.0) break;
-            z = c_sqr(z) + c;
+            z = c_sqr(z) + u_juliaC;
             n += 1.0;
           }
-          if (n >= 96.0) return vec3(0.0);
+          if (n >= 128.0) return vec3(0.0);
           float nu = log(log(dot(z, z)) / 2.0) / log(2.0);
           return applyPalette((n + 1.0 - nu) * 0.05 + u_time * 0.05, (n + 1.0 - nu) * 0.1);
         }
 
-        // --- 3D GPU Raymarching ---
+        // 3D GPU Raymarching
         float mapHeight(vec2 p) {
           vec2 fz = evalUserFormula(p);
           return clamp(log(length(fz) + 1.0), 0.0, 3.0);
@@ -461,16 +568,17 @@
             vec3 col = applyPalette(p.y * 0.5, atan(p.z, p.x));
             return col * diff;
           }
-          return vec3(0.02, 0.04, 0.08); // Background sky
+          return vec3(0.02, 0.04, 0.08);
         }
 
-        // --- Flow Field Mode ---
+        // Flow Field Mode
         vec3 renderFlowField(vec2 p) {
           vec2 v = evalUserFormula(p);
           float speed = length(v);
           float angle = atan(v.y, v.x);
           if (angle < 0.0) angle += 2.0 * PI;
-          return applyPalette(speed * 0.2, angle);
+          vec3 col = applyPalette(speed * 0.2, angle);
+          return applyConformalGrid(col, v);
         }
 
         void main() {
@@ -479,48 +587,67 @@
 
           vec3 col = vec3(0.0);
           if (u_mode == 0) col = renderComplexDomain(pos);
-          else if (u_mode == 1) col = renderFractal(pos);
-          else if (u_mode == 2) col = render3DRaymarch(st);
-          else if (u_mode == 3) col = renderFlowField(pos);
+          else if (u_mode == 1) col = renderRootsAndPoles(pos);
+          else if (u_mode == 2) col = renderJulia(pos);
+          else if (u_mode == 3) col = render3DRaymarch(st);
+          else if (u_mode == 4) col = renderFlowField(pos);
 
           gl_FragColor = vec4(col, 1.0);
         }
       `;
     }
 
-    // --- Live Formula String Transformer ---
+    // --- Formula String Parser ---
     function parseFormulaToGLSL(inputStr) {
       try {
-        let str = inputStr.trim().toLowerCase();
-        str = str.replace(/\s+/g, '');
+        let str = inputStr.trim().toLowerCase().replace(/\s+/g, '');
+
+        if (str.includes('zeta')) {
+          return 'c_add(c_exp(-z), c_pow(z, -2.0))';
+        }
+        if (str.includes('newton')) {
+          return 'c_div(c_sub(c_cube(z), vec2(1.0, 0.0)), c_mul(vec2(3.0, 0.0), c_sqr(z)))';
+        }
+
         str = str.replace(/z\^2/g, 'c_sqr(z)');
         str = str.replace(/z\^3/g, 'c_cube(z)');
         str = str.replace(/z\^([0-9\.]+)/g, 'c_pow(z, $1)');
         str = str.replace(/sin\(z\)/g, 'c_sin(z)');
         str = str.replace(/cos\(z\)/g, 'c_cos(z)');
         str = str.replace(/exp\(z\)/g, 'c_exp(z)');
-
-        // Numbers to floats
         str = str.replace(/(\d+)(?![.\d])/g, '$1.0');
-        // Simple linear offsets
-        str = str.replace(/-\d+\.\d+/g, 'c_sub(z, vec2($&, 0.0))');
 
         if (str === 'z') return 'z';
-        if (!str.includes('c_')) return 'c_sub(c_cube(z), vec2(1.0 - 0.3 * sin(u_time), 0.0))';
         return str;
       } catch (e) {
         return 'c_sub(c_cube(z), vec2(1.0, 0.0))';
       }
     }
 
-    // --- State & Engine Setup ---
+    // --- State Management ---
     const state = {
       mode: 0,
       zoom: 4.0,
       speed: 1.0,
       palette: 0,
-      offset: new THREE.Vector2(0, 0)
+      showGrid: true,
+      offset: new THREE.Vector2(0, 0),
+      juliaC: new THREE.Vector2(-0.7, 0.27015),
+      roots: [new THREE.Vector2(-1, 0), new THREE.Vector2(1, 0), new THREE.Vector2(0, 1)],
+      poles: [new THREE.Vector2(0, -1), new THREE.Vector2(0.5, 0.5)]
     };
+
+    // Load Hash State on Startup
+    function loadUrlHashState() {
+      if (!window.location.hash) return;
+      try {
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        if (params.has('mode')) state.mode = parseInt(params.get('mode'), 10);
+        if (params.has('zoom')) state.zoom = parseFloat(params.get('zoom'));
+        if (params.has('formula')) document.querySelector('#expr-input').value = params.get('formula');
+      } catch(e) {}
+    }
+    loadUrlHashState();
 
     const canvas = document.querySelector('#viz-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -536,101 +663,173 @@
       u_zoom: { value: state.zoom },
       u_time: { value: 0 },
       u_mode: { value: state.mode },
-      u_palette: { value: state.palette }
+      u_palette: { value: state.palette },
+      u_showGrid: { value: state.showGrid },
+      u_juliaC: { value: state.juliaC },
+      u_roots: { value: state.roots },
+      u_poles: { value: state.poles }
     };
 
     let material = new THREE.ShaderMaterial({
       vertexShader: vertShader,
-      fragmentShader: buildFragmentShader('c_sub(c_cube(z), vec2(1.0 - 0.3 * sin(u_time), 0.0))'),
+      fragmentShader: buildFragmentShader(parseFormulaToGLSL(document.querySelector('#expr-input').value)),
       uniforms
     });
 
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
     scene.add(mesh);
 
-    // --- Recompile Shader dynamically ---
     function updateShaderFormula(formulaText) {
       const glslExpr = parseFormulaToGLSL(formulaText);
-      const newFragShader = buildFragmentShader(glslExpr);
-      
       mesh.material.dispose();
       mesh.material = new THREE.ShaderMaterial({
         vertexShader: vertShader,
-        fragmentShader: newFragShader,
+        fragmentShader: buildFragmentShader(glslExpr),
         uniforms
       });
     }
 
-    // --- UI Controls Handler ---
+    // --- UI Event Handlers ---
     const modeBtns = document.querySelectorAll('.mode-btn');
-    modeBtns.forEach((btn) => {
+    const rootsLegend = document.querySelector('#roots-legend');
+    const juliaCard = document.querySelector('#julia-param-card');
+    const formulaGroup = document.querySelector('#formula-group');
+
+    function syncModeUI() {
+      modeBtns.forEach((b) => b.classList.remove('active'));
+      modeBtns[state.mode].classList.add('active');
+      uniforms.u_mode.value = state.mode;
+
+      rootsLegend.style.display = state.mode === 1 ? 'flex' : 'none';
+      juliaCard.style.display = state.mode === 2 ? 'block' : 'none';
+      formulaGroup.style.display = (state.mode === 1 || state.mode === 2) ? 'none' : 'flex';
+    }
+    syncModeUI();
+
+    modeBtns.forEach((btn, idx) => {
       btn.addEventListener('click', () => {
-        modeBtns.forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
         state.mode = parseInt(btn.dataset.mode, 10);
-        uniforms.u_mode.value = state.mode;
+        syncModeUI();
       });
     });
 
-    const exprInput = document.querySelector('#expr-input');
-    exprInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        updateShaderFormula(exprInput.value);
+    const presetSelect = document.querySelector('#preset-select');
+    presetSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      const input = document.querySelector('#expr-input');
+      if (val === 'zeta') input.value = 'zeta';
+      else if (val === 'newton') input.value = 'newton';
+      else if (val === 'joukowsky') input.value = 'z + 1/z';
+      else if (val === 'rational') {
+        state.mode = 1;
+        syncModeUI();
+        return;
       }
+      updateShaderFormula(input.value);
     });
 
-    const paletteSelect = document.querySelector('#palette-select');
-    paletteSelect.addEventListener('change', (e) => {
+    document.querySelector('#expr-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') updateShaderFormula(e.target.value);
+    });
+
+    document.querySelector('#palette-select').addEventListener('change', (e) => {
       state.palette = parseInt(e.target.value, 10);
       uniforms.u_palette.value = state.palette;
     });
 
-    const speedSlider = document.querySelector('#speed-slider');
-    const speedVal = document.querySelector('#speed-val');
-    speedSlider.addEventListener('input', (e) => {
-      state.speed = parseFloat(e.target.value);
-      speedVal.textContent = state.speed.toFixed(1);
+    document.querySelector('#grid-toggle').addEventListener('change', (e) => {
+      state.showGrid = e.target.checked;
+      uniforms.u_showGrid.value = state.showGrid;
     });
 
-    // Capture High-Res PNG Export
+    document.querySelector('#speed-slider').addEventListener('input', (e) => {
+      state.speed = parseFloat(e.target.value);
+      document.querySelector('#speed-val').textContent = state.speed.toFixed(1);
+    });
+
+    // Share URL State
+    document.querySelector('#share-btn').addEventListener('click', () => {
+      const hash = `#mode=${state.mode}&zoom=${state.zoom.toFixed(2)}&formula=${encodeURIComponent(document.querySelector('#expr-input').value)}`;
+      window.location.hash = hash;
+      navigator.clipboard.writeText(window.location.href);
+      alert('URL with current state copied to clipboard!');
+    });
+
+    // Export High-Res Image
     document.querySelector('#export-btn').addEventListener('click', () => {
       renderer.render(scene, camera);
-      const dataURL = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `math-render-${Date.now()}.png`;
-      link.href = dataURL;
+      link.download = `math-atlas-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
       link.click();
     });
 
-    // --- Interactive Pan & Zoom ---
+    // --- Drag & Drop Handles + Pan & Zoom ---
     let isDragging = false;
+    let draggedHandle = null;
     let prevMouse = { x: 0, y: 0 };
 
     window.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.hud-interactive')) return;
       isDragging = true;
       prevMouse = { x: e.clientX, y: e.clientY };
+
+      const aspect = window.innerWidth / window.innerHeight;
+      const zReal = ((e.clientX / window.innerWidth) * 2 - 1) * state.zoom * aspect + state.offset.x;
+      const zImag = -((e.clientY / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
+      const clickPos = new THREE.Vector2(zReal, zImag);
+
+      // Mode 1: Check handle clicks
+      if (state.mode === 1) {
+        for (let r of state.roots) {
+          if (r.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = r; return; }
+        }
+        for (let p of state.poles) {
+          if (p.distanceTo(clickPos) < 0.2 * state.zoom) { draggedHandle = p; return; }
+        }
+      }
+
+      // Mode 2: Julia Set Parameter Picking
+      if (state.mode === 2) {
+        state.juliaC.copy(clickPos);
+        document.querySelector('#readout-c').textContent = 
+          `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
+      }
     });
 
     window.addEventListener('pointermove', (e) => {
+      const aspect = window.innerWidth / window.innerHeight;
+      const zReal = ((e.clientX / window.innerWidth) * 2 - 1) * state.zoom * aspect + state.offset.x;
+      const zImag = -((e.clientY / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
+
+      document.querySelector('#readout-z').textContent = 
+        `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
+
       if (isDragging) {
+        if (draggedHandle) {
+          draggedHandle.set(zReal, zImag);
+          return;
+        }
+
+        if (state.mode === 2) {
+          state.juliaC.set(zReal, zImag);
+          document.querySelector('#readout-c').textContent = 
+            `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
+          return;
+        }
+
         const dx = e.clientX - prevMouse.x;
         const dy = e.clientY - prevMouse.y;
         state.offset.x -= (dx / window.innerHeight) * state.zoom;
         state.offset.y += (dy / window.innerHeight) * state.zoom;
         prevMouse = { x: e.clientX, y: e.clientY };
       }
-
-      // Cursor readout
-      const aspect = window.innerWidth / window.innerHeight;
-      const zReal = ((e.clientX / window.innerWidth) * 2 - 1) * state.zoom * aspect + state.offset.x;
-      const zImag = -((e.clientY / window.innerHeight) * 2 - 1) * state.zoom + state.offset.y;
-      
-      document.querySelector('#readout-z').textContent = 
-        `${zReal.toFixed(2)} ${zImag >= 0 ? '+' : '-'} ${Math.abs(zImag).toFixed(2)}i`;
     });
 
-    window.addEventListener('pointerup', () => (isDragging = false));
+    window.addEventListener('pointerup', () => {
+      isDragging = false;
+      draggedHandle = null;
+    });
 
     window.addEventListener('wheel', (e) => {
       const factor = e.deltaY > 0 ? 1.08 : 0.92;
@@ -643,7 +842,7 @@
       uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
     });
 
-    // --- Adaptive Performance Monitor & Render Loop ---
+    // --- Render Loop & Performance Monitor ---
     const clock = new THREE.Clock();
     let elapsedTime = 0;
     let frameCount = 0;
@@ -655,7 +854,6 @@
       elapsedTime += delta * state.speed;
       uniforms.u_time.value = elapsedTime;
 
-      // Adaptive Resolution Monitor
       frameCount++;
       const now = performance.now();
       if (now - lastFpsCheck >= 1000) {
